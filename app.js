@@ -250,8 +250,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Active UI state
     let assetsList = [];
     let currentFilteredList = []; // Tracks currently visible/filtered rows for CSV export
-    let selectedSerial = null; // Track row selections by serial_number (Primary Key)
-    let sortColumn = 'serial_number';
+    let selectedStation = null; // Track row selections by Station_Number (Primary Key)
+    let sortColumn = 'Station_Number';
     let sortOrder = 'asc';
     let searchQuery = '';
     let selectedProgram = 'All';
@@ -271,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Toggle CRUD actions based on selection
     function updateActionButtonStates() {
-      const isSelected = selectedSerial !== null;
+      const isSelected = selectedStation !== null;
       btnDelete.disabled = !isSelected;
       btnEdit.disabled = !isSelected;
       btnUpdateStatus.disabled = !isSelected;
@@ -306,24 +306,31 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // 1. Client side filters (Search input & Program dropdown)
       let filtered = assetsList.filter(asset => {
-        if (selectedProgram !== 'All' && asset.program !== selectedProgram) {
+        if (selectedProgram !== 'All' && asset.Program !== selectedProgram) {
           return false;
         }
         
         if (searchQuery) {
           const matchParts = [
-            "0", // AssetId
-            asset.station_number,
-            asset.serial_number,
-            asset.model_of_asset,
-            asset.brand_of_asset,
-            asset.type_of_asset,
-            asset.program,
-            asset.asset_located_floor,
-            asset.site,
-            asset.current_status,
-            asset.created_date,
-            asset.modified_date
+            asset.Station_Number,
+            asset.CPU_Model,
+            asset.CPU_Serial,
+            asset.CPU_Brand,
+            asset.Monitor1_Model,
+            asset.Monitor1_Serial,
+            asset.Monitor1_Brand,
+            asset.Monitor2_Model,
+            asset.Monitor2_Serial,
+            asset.Monitor2_Brand,
+            asset.Monitor3_Model,
+            asset.Monitor3_Serial,
+            asset.Monitor3_Brand,
+            asset.Program,
+            asset.Asset_located_floor,
+            asset.Site,
+            asset.Current_Status,
+            asset.Created_Date,
+            asset.Modified_Date
           ];
           const matchStr = matchParts.map(val => (val !== null && val !== undefined) ? val.toString().toLowerCase() : '').join(' ');
           return matchStr.includes(searchQuery);
@@ -332,12 +339,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return true;
       });
 
-      // 2. Client side sorting (Mapped to exact DB column keys)
+      // 2. Client side sorting
       filtered.sort((a, b) => {
         let valA = a[sortColumn];
         let valB = b[sortColumn];
 
-        if (sortColumn === 'station_number') {
+        if (sortColumn === 'Station_Number') {
           valA = parseInt(valA) || 0;
           valB = parseInt(valB) || 0;
         } else {
@@ -350,7 +357,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return 0;
       });
 
-      // Track currently filtered rows
       currentFilteredList = filtered;
 
       // 3. Render rows
@@ -361,43 +367,47 @@ document.addEventListener('DOMContentLoaded', () => {
         
         filtered.forEach(asset => {
           const tr = document.createElement('tr');
-          tr.setAttribute('data-serial', asset.serial_number);
+          tr.setAttribute('data-station', asset.Station_Number);
           
-          if (selectedSerial === asset.serial_number) {
+          if (selectedStation == asset.Station_Number) {
             tr.classList.add('selected');
           }
 
           // Badge coloring
           let badgeClass = 'badge-other';
-          if (asset.current_status === 'Deployed') badgeClass = 'badge-deployed';
-          else if (asset.current_status === 'Onsite Deployed') badgeClass = 'badge-onsite';
-          else if (asset.current_status === 'Pulled Out') badgeClass = 'badge-pulled';
+          if (asset.Current_Status === 'Deployed') badgeClass = 'badge-deployed';
+          else if (asset.Current_Status === 'Onsite Deployed') badgeClass = 'badge-onsite';
+          else if (asset.Current_Status === 'Pulled Out') badgeClass = 'badge-pulled';
 
-          // We derive AssetId as 0 and OriginalSerialNumber as SerialNumber to match layout 
-          // without needing these extra fields in the actual database schema!
           tr.innerHTML = `
-            <td>0</td>
-            <td>${asset.station_number}</td>
-            <td style="font-family: monospace; font-weight: 600;">${asset.serial_number}</td>
-            <td style="font-family: monospace; opacity: 0.7;">${asset.serial_number}</td>
-            <td>${asset.model_of_asset}</td>
-            <td>${asset.brand_of_asset}</td>
-            <td>${asset.type_of_asset}</td>
-            <td>${asset.program || '-'}</td>
-            <td>${asset.asset_located_floor || '-'}</td>
-            <td>${asset.site || '-'}</td>
-            <td><span class="badge ${badgeClass}">${asset.current_status}</span></td>
-            <td style="font-size: 11px; opacity: 0.75;">${asset.created_date || '-'}</td>
-            <td style="font-size: 11px; color: #22D3EE; font-weight: 600;">${asset.modified_date || '-'}</td>
+            <td><strong>${asset.Station_Number}</strong></td>
+            <td>${asset.CPU_Model || '-'}</td>
+            <td style="font-family: monospace; font-size: 12px;">${asset.CPU_Serial || '-'}</td>
+            <td>${asset.CPU_Brand || '-'}</td>
+            <td>${asset.Monitor1_Model || '-'}</td>
+            <td style="font-family: monospace; font-size: 12px;">${asset.Monitor1_Serial || '-'}</td>
+            <td>${asset.Monitor1_Brand || '-'}</td>
+            <td>${asset.Monitor2_Model || '-'}</td>
+            <td style="font-family: monospace; font-size: 12px;">${asset.Monitor2_Serial || '-'}</td>
+            <td>${asset.Monitor2_Brand || '-'}</td>
+            <td>${asset.Monitor3_Model || '-'}</td>
+            <td style="font-family: monospace; font-size: 12px;">${asset.Monitor3_Serial || '-'}</td>
+            <td>${asset.Monitor3_Brand || '-'}</td>
+            <td>${asset.Program || '-'}</td>
+            <td>${asset.Asset_located_floor || '-'}</td>
+            <td>${asset.Site || '-'}</td>
+            <td><span class="badge ${badgeClass}">${asset.Current_Status}</span></td>
+            <td style="font-size: 11px; opacity: 0.75;">${asset.Created_Date || '-'}</td>
+            <td style="font-size: 11px; color: #22D3EE; font-weight: 600;">${asset.Modified_Date || '-'}</td>
           `;
 
-          // Row click selection
+          // Row click selection by Station_Number
           tr.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (selectedSerial === asset.serial_number) {
-              selectedSerial = null;
+            if (selectedStation == asset.Station_Number) {
+              selectedStation = null;
             } else {
-              selectedSerial = asset.serial_number;
+              selectedStation = asset.Station_Number;
             }
             renderTable();
           });
@@ -407,35 +417,17 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // Update counters
-      const activeObj = assetsList.find(a => a.serial_number === selectedSerial);
-      const selectedSerialText = activeObj ? `(${activeObj.serial_number})` : 'None';
-      statsText.innerHTML = `Total Assets: <strong>${assetsList.length}</strong> | Visible: <strong>${filtered.length}</strong> | Selected: <strong>${selectedSerialText}</strong>`;
+      const activeObj = assetsList.find(a => a.Station_Number == selectedStation);
+      const selectedText = activeObj ? `Station ${activeObj.Station_Number}` : 'None';
+      statsText.innerHTML = `Total Assets: <strong>${assetsList.length}</strong> | Visible: <strong>${filtered.length}</strong> | Selected: <strong>${selectedText}</strong>`;
       
       updateActionButtonStates();
     }
 
-    // Grid column sorting click handlers
+    // Grid column sorting — data-sort values already match DB column names directly
     document.querySelectorAll('th[data-sort]').forEach(th => {
       th.addEventListener('click', () => {
-        // Map UI column heading labels to database JSON keys
-        const labelMap = {
-          'AssetId': 'serial_number', // fallback to sorting by serial
-          'StationNumber': 'station_number',
-          'SerialNumber': 'serial_number',
-          'OriginalSerialNumber': 'serial_number',
-          'ModelOfAsset': 'model_of_asset',
-          'BrandOfAsset': 'brand_of_asset',
-          'AssetType': 'type_of_asset',
-          'Program': 'program',
-          'AssetLocatedFloor': 'asset_located_floor',
-          'Site': 'site',
-          'CurrentStatus': 'current_status',
-          'CreatedDate': 'created_date',
-          'ModifiedDate': 'modified_date'
-        };
-
-        const uiCol = th.getAttribute('data-sort');
-        const dbCol = labelMap[uiCol] || 'serial_number';
+        const dbCol = th.getAttribute('data-sort');
         
         document.querySelectorAll('th').forEach(header => {
           header.classList.remove('sorted-asc', 'sorted-desc');
@@ -455,8 +447,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Clear selection when clicking table workspace background
     document.querySelector('.table-workspace').addEventListener('click', () => {
-      if (selectedSerial !== null) {
-        selectedSerial = null;
+      if (selectedStation !== null) {
+        selectedStation = null;
         renderTable();
       }
     });
@@ -516,15 +508,23 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       
       const payload = {
-        station_number: parseInt(document.getElementById('add-station').value) || 0,
-        serial_number: document.getElementById('add-serial').value.trim(),
-        model_of_asset: document.getElementById('add-model').value.trim(),
-        brand_of_asset: document.getElementById('add-brand').value.trim() || 'Generic',
-        type_of_asset: document.getElementById('add-type').value.trim(),
-        program: document.getElementById('add-program').value,
-        asset_located_floor: document.getElementById('add-floor').value.trim(),
-        site: document.getElementById('add-site').value.trim(),
-        current_status: document.getElementById('add-status').value
+        Station_Number:       parseInt(document.getElementById('add-station').value) || 0,
+        CPU_Model:            document.getElementById('add-cpu-model').value.trim(),
+        CPU_Serial:           document.getElementById('add-cpu-serial').value.trim(),
+        CPU_Brand:            document.getElementById('add-cpu-brand').value.trim(),
+        Monitor1_Model:       document.getElementById('add-mon1-model').value.trim(),
+        Monitor1_Serial:      document.getElementById('add-mon1-serial').value.trim(),
+        Monitor1_Brand:       document.getElementById('add-mon1-brand').value.trim(),
+        Monitor2_Model:       document.getElementById('add-mon2-model').value.trim(),
+        Monitor2_Serial:      document.getElementById('add-mon2-serial').value.trim(),
+        Monitor2_Brand:       document.getElementById('add-mon2-brand').value.trim(),
+        Monitor3_Model:       document.getElementById('add-mon3-model').value.trim(),
+        Monitor3_Serial:      document.getElementById('add-mon3-serial').value.trim(),
+        Monitor3_Brand:       document.getElementById('add-mon3-brand').value.trim(),
+        Program:              document.getElementById('add-program').value,
+        Asset_located_floor:  document.getElementById('add-floor').value.trim(),
+        Site:                 document.getElementById('add-site').value.trim(),
+        Current_Status:       document.getElementById('add-status').value
       };
 
       fetch('api.php?action=add', {
@@ -536,8 +536,8 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(data => {
         if (data.success) {
           closeModal(modalAdd);
-          fetchAssetsFromDatabase(); // reload items
-          showToast("Asset Cataloged", `Serial ${payload.serial_number} written to database.`, "success");
+          fetchAssetsFromDatabase();
+          showToast("Asset Cataloged", `Station ${payload.Station_Number} written to database.`, "success");
         } else {
           showToast("Database Validation Failed", data.message || "Could not write record.", "danger");
         }
@@ -550,20 +550,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Trigger Edit Modal
     btnEdit.addEventListener('click', () => {
-      const asset = assetsList.find(a => a.serial_number === selectedSerial);
+      const asset = assetsList.find(a => a.Station_Number == selectedStation);
       if (!asset) return;
 
-      document.getElementById('edit-asset-id').value = asset.serial_number; // holds the old key
-      document.getElementById('edit-station').value = asset.station_number;
-      document.getElementById('edit-serial').value = asset.serial_number;
-      document.getElementById('edit-orig-serial').value = asset.serial_number;
-      document.getElementById('edit-model').value = asset.model_of_asset;
-      document.getElementById('edit-brand').value = asset.brand_of_asset;
-      document.getElementById('edit-type').value = asset.type_of_asset;
-      document.getElementById('edit-program').value = asset.program;
-      document.getElementById('edit-floor').value = asset.asset_located_floor;
-      document.getElementById('edit-site').value = asset.site;
-      document.getElementById('edit-status').value = asset.current_status;
+      document.getElementById('edit-station-key').value  = asset.Station_Number;
+      document.getElementById('edit-station').value       = asset.Station_Number;
+      document.getElementById('edit-cpu-model').value     = asset.CPU_Model || '';
+      document.getElementById('edit-cpu-serial').value    = asset.CPU_Serial || '';
+      document.getElementById('edit-cpu-brand').value     = asset.CPU_Brand || '';
+      document.getElementById('edit-mon1-model').value    = asset.Monitor1_Model || '';
+      document.getElementById('edit-mon1-serial').value   = asset.Monitor1_Serial || '';
+      document.getElementById('edit-mon1-brand').value    = asset.Monitor1_Brand || '';
+      document.getElementById('edit-mon2-model').value    = asset.Monitor2_Model || '';
+      document.getElementById('edit-mon2-serial').value   = asset.Monitor2_Serial || '';
+      document.getElementById('edit-mon2-brand').value    = asset.Monitor2_Brand || '';
+      document.getElementById('edit-mon3-model').value    = asset.Monitor3_Model || '';
+      document.getElementById('edit-mon3-serial').value   = asset.Monitor3_Serial || '';
+      document.getElementById('edit-mon3-brand').value    = asset.Monitor3_Brand || '';
+      document.getElementById('edit-program').value        = asset.Program || '';
+      document.getElementById('edit-floor').value          = asset.Asset_located_floor || '';
+      document.getElementById('edit-site').value           = asset.Site || '';
+      document.getElementById('edit-status').value         = asset.Current_Status || 'Deployed';
 
       openModal(modalEdit);
     });
@@ -572,18 +579,26 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('form-edit-asset').addEventListener('submit', (e) => {
       e.preventDefault();
       
-      const oldSerial = document.getElementById('edit-asset-id').value;
+      const oldStation = document.getElementById('edit-station-key').value;
       const payload = {
-        old_serial_number: oldSerial,
-        station_number: parseInt(document.getElementById('edit-station').value) || 0,
-        serial_number: document.getElementById('edit-serial').value.trim(),
-        model_of_asset: document.getElementById('edit-model').value.trim(),
-        brand_of_asset: document.getElementById('edit-brand').value.trim(),
-        type_of_asset: document.getElementById('edit-type').value.trim(),
-        program: document.getElementById('edit-program').value,
-        asset_located_floor: document.getElementById('edit-floor').value.trim(),
-        site: document.getElementById('edit-site').value.trim(),
-        current_status: document.getElementById('edit-status').value
+        old_Station_Number:  parseInt(oldStation),
+        Station_Number:      parseInt(document.getElementById('edit-station').value) || 0,
+        CPU_Model:           document.getElementById('edit-cpu-model').value.trim(),
+        CPU_Serial:          document.getElementById('edit-cpu-serial').value.trim(),
+        CPU_Brand:           document.getElementById('edit-cpu-brand').value.trim(),
+        Monitor1_Model:      document.getElementById('edit-mon1-model').value.trim(),
+        Monitor1_Serial:     document.getElementById('edit-mon1-serial').value.trim(),
+        Monitor1_Brand:      document.getElementById('edit-mon1-brand').value.trim(),
+        Monitor2_Model:      document.getElementById('edit-mon2-model').value.trim(),
+        Monitor2_Serial:     document.getElementById('edit-mon2-serial').value.trim(),
+        Monitor2_Brand:      document.getElementById('edit-mon2-brand').value.trim(),
+        Monitor3_Model:      document.getElementById('edit-mon3-model').value.trim(),
+        Monitor3_Serial:     document.getElementById('edit-mon3-serial').value.trim(),
+        Monitor3_Brand:      document.getElementById('edit-mon3-brand').value.trim(),
+        Program:             document.getElementById('edit-program').value,
+        Asset_located_floor: document.getElementById('edit-floor').value.trim(),
+        Site:                document.getElementById('edit-site').value.trim(),
+        Current_Status:      document.getElementById('edit-status').value
       };
 
       fetch('api.php?action=edit', {
@@ -594,10 +609,10 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(res => res.json())
       .then(data => {
         if (data.success) {
-          selectedSerial = payload.serial_number; // Keep row selected under new serial key
+          selectedStation = payload.Station_Number;
           closeModal(modalEdit);
           fetchAssetsFromDatabase();
-          showToast("Asset Updated", `Database record details for ${payload.serial_number} updated.`, "success");
+          showToast("Asset Updated", `Station ${payload.Station_Number} updated successfully.`, "success");
         } else {
           showToast("Database Validation Failed", data.message || "Could not update record.", "danger");
         }
@@ -610,10 +625,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Trigger Status Quick Modal
     btnUpdateStatus.addEventListener('click', () => {
-      const asset = assetsList.find(a => a.serial_number === selectedSerial);
+      const asset = assetsList.find(a => a.Station_Number == selectedStation);
       if (!asset) return;
 
-      document.getElementById('quick-status-select').value = asset.current_status;
+      document.getElementById('quick-status-select').value = asset.Current_Status;
       openModal(modalStatus);
     });
 
@@ -626,7 +641,7 @@ document.addEventListener('DOMContentLoaded', () => {
       fetch('api.php?action=status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ serial_number: selectedSerial, current_status: newStatus })
+        body: JSON.stringify({ Station_Number: selectedStation, Current_Status: newStatus })
       })
       .then(res => res.json())
       .then(data => {
@@ -646,28 +661,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Trigger Delete Confirmation Modal
     btnDelete.addEventListener('click', () => {
-      if (!selectedSerial) return;
-      document.getElementById('delete-asset-serial-label').textContent = selectedSerial;
+      if (selectedStation === null) return;
+      document.getElementById('delete-asset-serial-label').textContent = `Station ${selectedStation}`;
       openModal(modalDelete);
     });
 
     // Handle Confirm Delete Button Click inside Modal
     document.getElementById('btn-confirm-delete').addEventListener('click', () => {
-      if (!selectedSerial) return;
+      if (selectedStation === null) return;
 
       fetch('api.php?action=delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ serial_number: selectedSerial })
+        body: JSON.stringify({ Station_Number: selectedStation })
       })
       .then(res => res.json())
       .then(data => {
         if (data.success) {
-          const deleted = selectedSerial;
-          selectedSerial = null;
+          const deleted = selectedStation;
+          selectedStation = null;
           closeModal(modalDelete);
           fetchAssetsFromDatabase();
-          showToast("Asset Purged", `Asset serial ${deleted} deleted from XAMPP database.`, "danger");
+          showToast("Asset Purged", `Station ${deleted} deleted from database.`, "danger");
         } else {
           showToast("Deletion Failed", data.message || "Database execution failed.", "danger");
         }
@@ -694,7 +709,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
           icon.classList.remove('rotating');
           if (data.success) {
-            selectedSerial = null;
+            selectedStation = null;
             searchQuery = '';
             selectedProgram = 'All';
             if (searchInput) searchInput.value = '';
@@ -723,32 +738,40 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // Headers layout
+      // Headers matching the new schema
       const headers = [
-        "AssetId", "StationNumber", "SerialNumber", "OriginalSerialNumber", 
-        "ModelOfAsset", "BrandOfAsset", "AssetType", "Program", 
-        "AssetLocatedFloor", "Site", "CurrentStatus", "CreatedDate", "ModifiedDate"
+        "Station_Number", "CPU_Model", "CPU_Serial", "CPU_Brand",
+        "Monitor1_Model", "Monitor1_Serial", "Monitor1_Brand",
+        "Monitor2_Model", "Monitor2_Serial", "Monitor2_Brand",
+        "Monitor3_Model", "Monitor3_Serial", "Monitor3_Brand",
+        "Program", "Asset_located_floor", "Site", "Current_Status",
+        "Created_Date", "Modified_Date"
       ];
 
       let csvContent = "";
       csvContent += headers.join(",") + "\r\n";
 
       listToExport.forEach(asset => {
-        // Map database properties dynamically
         const row = [
-          "0",
-          asset.station_number,
-          asset.serial_number,
-          asset.serial_number, // original serial
-          asset.model_of_asset,
-          asset.brand_of_asset,
-          asset.type_of_asset,
-          asset.program || '',
-          asset.asset_located_floor || '',
-          asset.site || '',
-          asset.current_status,
-          asset.created_date || '',
-          asset.modified_date || ''
+          asset.Station_Number,
+          asset.CPU_Model || '',
+          asset.CPU_Serial || '',
+          asset.CPU_Brand || '',
+          asset.Monitor1_Model || '',
+          asset.Monitor1_Serial || '',
+          asset.Monitor1_Brand || '',
+          asset.Monitor2_Model || '',
+          asset.Monitor2_Serial || '',
+          asset.Monitor2_Brand || '',
+          asset.Monitor3_Model || '',
+          asset.Monitor3_Serial || '',
+          asset.Monitor3_Brand || '',
+          asset.Program || '',
+          asset.Asset_located_floor || '',
+          asset.Site || '',
+          asset.Current_Status || '',
+          asset.Created_Date || '',
+          asset.Modified_Date || ''
         ].map(val => {
           let str = (val !== null && val !== undefined) ? val.toString().replace(/"/g, '""') : '';
           if (str.includes(',') || str.includes('\n') || str.includes('\r') || str.includes('"')) {

@@ -159,40 +159,49 @@ try {
                 exit;
             }
 
-            $serial = trim($inputData['serial_number'] ?? '');
-            
-            if (empty($serial)) {
-                echo json_encode(['success' => false, 'message' => 'Serial Number is required.']);
-                exit;
-            }
+            $stationNum = intval($inputData['Station_Number'] ?? 0);
 
-            // Check if primary key serial number already exists
-            $checkStmt = $db->prepare("SELECT COUNT(*) FROM assets WHERE serial_number = :serial");
-            $checkStmt->execute(['serial' => $serial]);
+            // Check if Station_Number already exists
+            $checkStmt = $db->prepare("SELECT COUNT(*) FROM assets WHERE Station_Number = :station");
+            $checkStmt->execute(['station' => $stationNum]);
             if ($checkStmt->fetchColumn() > 0) {
-                echo json_encode(['success' => false, 'message' => 'Asset with Serial Number "' . $serial . '" already exists.']);
+                echo json_encode(['success' => false, 'message' => 'Station Number ' . $stationNum . ' already exists.']);
                 exit;
             }
 
             $sql = "INSERT INTO assets (
-                        station_number, serial_number, model_of_asset, brand_of_asset, 
-                        type_of_asset, program, asset_located_floor, site, current_status, created_date
+                        Station_Number, CPU_Model, CPU_Serial, CPU_Brand,
+                        Monitor1_Model, Monitor1_Serial, Monitor1_Brand,
+                        Monitor2_Model, Monitor2_Serial, Monitor2_Brand,
+                        Monitor3_Model, Monitor3_Serial, Monitor3_Brand,
+                        Program, Asset_located_floor, Site, Current_Status, Created_Date
                     ) VALUES (
-                        :station_number, :serial_number, :model_of_asset, :brand_of_asset, 
-                        :type_of_asset, :program, :asset_located_floor, :site, :current_status, NOW()
+                        :Station_Number, :CPU_Model, :CPU_Serial, :CPU_Brand,
+                        :Monitor1_Model, :Monitor1_Serial, :Monitor1_Brand,
+                        :Monitor2_Model, :Monitor2_Serial, :Monitor2_Brand,
+                        :Monitor3_Model, :Monitor3_Serial, :Monitor3_Brand,
+                        :Program, :Asset_located_floor, :Site, :Current_Status, NOW()
                     )";
             
             $stmt = $db->prepare($sql);
             $stmt->execute([
-                'station_number'      => intval($inputData['station_number'] ?? 0),
-                'serial_number'       => $serial,
-                'model_of_asset'      => trim($inputData['model_of_asset'] ?? ''),
-                'brand_of_asset'      => trim($inputData['brand_of_asset'] ?? 'Generic'),
-                'type_of_asset'       => trim($inputData['type_of_asset'] ?? 'Monitor'),
-                'program'             => trim($inputData['program'] ?? NULL),
-                'asset_located_floor' => trim($inputData['asset_located_floor'] ?? NULL),
-                'site'                => trim($inputData['site'] ?? NULL),
-                'current_status'      => trim($inputData['current_status'] ?? 'Deployed')
+                'Station_Number'      => $stationNum,
+                'CPU_Model'           => trim($inputData['CPU_Model'] ?? ''),
+                'CPU_Serial'          => trim($inputData['CPU_Serial'] ?? ''),
+                'CPU_Brand'           => trim($inputData['CPU_Brand'] ?? ''),
+                'Monitor1_Model'      => trim($inputData['Monitor1_Model'] ?? ''),
+                'Monitor1_Serial'     => trim($inputData['Monitor1_Serial'] ?? ''),
+                'Monitor1_Brand'      => trim($inputData['Monitor1_Brand'] ?? ''),
+                'Monitor2_Model'      => trim($inputData['Monitor2_Model'] ?? ''),
+                'Monitor2_Serial'     => trim($inputData['Monitor2_Serial'] ?? ''),
+                'Monitor2_Brand'      => trim($inputData['Monitor2_Brand'] ?? ''),
+                'Monitor3_Model'      => trim($inputData['Monitor3_Model'] ?? ''),
+                'Monitor3_Serial'     => trim($inputData['Monitor3_Serial'] ?? ''),
+                'Monitor3_Brand'      => trim($inputData['Monitor3_Brand'] ?? ''),
+                'Program'             => trim($inputData['Program'] ?? ''),
+                'Asset_located_floor' => trim($inputData['Asset_located_floor'] ?? ''),
+                'Site'                => trim($inputData['Site'] ?? ''),
+                'Current_Status'      => trim($inputData['Current_Status'] ?? 'Deployed')
             ]);
 
             echo json_encode(['success' => true]);
@@ -208,49 +217,60 @@ try {
                 exit;
             }
 
-            $oldSerial = trim($inputData['old_serial_number'] ?? '');
-            $newSerial = trim($inputData['serial_number'] ?? '');
+            $oldStation = intval($inputData['old_Station_Number'] ?? 0);
+            $newStation = intval($inputData['Station_Number'] ?? 0);
 
-            if (empty($oldSerial) || empty($newSerial)) {
-                echo json_encode(['success' => false, 'message' => 'Old and New Serial numbers are required.']);
-                exit;
-            }
-
-            // Check if renaming primary key to another existing serial number
-            if ($oldSerial !== $newSerial) {
-                $checkStmt = $db->prepare("SELECT COUNT(*) FROM assets WHERE serial_number = :serial");
-                $checkStmt->execute(['serial' => $newSerial]);
+            // If renaming Station_Number, check target doesn't already exist
+            if ($oldStation !== $newStation) {
+                $checkStmt = $db->prepare("SELECT COUNT(*) FROM assets WHERE Station_Number = :station");
+                $checkStmt->execute(['station' => $newStation]);
                 if ($checkStmt->fetchColumn() > 0) {
-                    echo json_encode(['success' => false, 'message' => 'A different asset with Serial Number "' . $newSerial . '" already exists.']);
+                    echo json_encode(['success' => false, 'message' => 'Station Number ' . $newStation . ' is already taken by another record.']);
                     exit;
                 }
             }
 
             $sql = "UPDATE assets SET 
-                        station_number = :station_number,
-                        serial_number = :new_serial_number,
-                        model_of_asset = :model_of_asset,
-                        brand_of_asset = :brand_of_asset,
-                        type_of_asset = :type_of_asset,
-                        program = :program,
-                        asset_located_floor = :asset_located_floor,
-                        site = :site,
-                        current_status = :current_status,
-                        modified_date = NOW()
-                    WHERE serial_number = :old_serial_number";
+                        Station_Number       = :Station_Number,
+                        CPU_Model            = :CPU_Model,
+                        CPU_Serial           = :CPU_Serial,
+                        CPU_Brand            = :CPU_Brand,
+                        Monitor1_Model       = :Monitor1_Model,
+                        Monitor1_Serial      = :Monitor1_Serial,
+                        Monitor1_Brand       = :Monitor1_Brand,
+                        Monitor2_Model       = :Monitor2_Model,
+                        Monitor2_Serial      = :Monitor2_Serial,
+                        Monitor2_Brand       = :Monitor2_Brand,
+                        Monitor3_Model       = :Monitor3_Model,
+                        Monitor3_Serial      = :Monitor3_Serial,
+                        Monitor3_Brand       = :Monitor3_Brand,
+                        Program              = :Program,
+                        Asset_located_floor  = :Asset_located_floor,
+                        Site                 = :Site,
+                        Current_Status       = :Current_Status,
+                        Modified_Date        = NOW()
+                    WHERE Station_Number = :old_Station_Number";
             
             $stmt = $db->prepare($sql);
             $stmt->execute([
-                'station_number'      => intval($inputData['station_number'] ?? 0),
-                'new_serial_number'   => $newSerial,
-                'model_of_asset'      => trim($inputData['model_of_asset'] ?? ''),
-                'brand_of_asset'      => trim($inputData['brand_of_asset'] ?? ''),
-                'type_of_asset'       => trim($inputData['type_of_asset'] ?? ''),
-                'program'             => trim($inputData['program'] ?? NULL),
-                'asset_located_floor' => trim($inputData['asset_located_floor'] ?? NULL),
-                'site'                => trim($inputData['site'] ?? NULL),
-                'current_status'      => trim($inputData['current_status'] ?? 'Deployed'),
-                'old_serial_number'   => $oldSerial
+                'Station_Number'      => $newStation,
+                'CPU_Model'           => trim($inputData['CPU_Model'] ?? ''),
+                'CPU_Serial'          => trim($inputData['CPU_Serial'] ?? ''),
+                'CPU_Brand'           => trim($inputData['CPU_Brand'] ?? ''),
+                'Monitor1_Model'      => trim($inputData['Monitor1_Model'] ?? ''),
+                'Monitor1_Serial'     => trim($inputData['Monitor1_Serial'] ?? ''),
+                'Monitor1_Brand'      => trim($inputData['Monitor1_Brand'] ?? ''),
+                'Monitor2_Model'      => trim($inputData['Monitor2_Model'] ?? ''),
+                'Monitor2_Serial'     => trim($inputData['Monitor2_Serial'] ?? ''),
+                'Monitor2_Brand'      => trim($inputData['Monitor2_Brand'] ?? ''),
+                'Monitor3_Model'      => trim($inputData['Monitor3_Model'] ?? ''),
+                'Monitor3_Serial'     => trim($inputData['Monitor3_Serial'] ?? ''),
+                'Monitor3_Brand'      => trim($inputData['Monitor3_Brand'] ?? ''),
+                'Program'             => trim($inputData['Program'] ?? ''),
+                'Asset_located_floor' => trim($inputData['Asset_located_floor'] ?? ''),
+                'Site'                => trim($inputData['Site'] ?? ''),
+                'Current_Status'      => trim($inputData['Current_Status'] ?? 'Deployed'),
+                'old_Station_Number'  => $oldStation
             ]);
 
             echo json_encode(['success' => true]);
@@ -266,16 +286,11 @@ try {
                 exit;
             }
 
-            $serial = trim($inputData['serial_number'] ?? '');
-            $status = trim($inputData['current_status'] ?? 'Deployed');
+            $station = intval($inputData['Station_Number'] ?? 0);
+            $status  = trim($inputData['Current_Status'] ?? 'Deployed');
 
-            if (empty($serial)) {
-                echo json_encode(['success' => false, 'message' => 'Serial Number is required.']);
-                exit;
-            }
-
-            $stmt = $db->prepare("UPDATE assets SET current_status = :status, modified_date = NOW() WHERE serial_number = :serial");
-            $stmt->execute(['status' => $status, 'serial' => $serial]);
+            $stmt = $db->prepare("UPDATE assets SET Current_Status = :status, Modified_Date = NOW() WHERE Station_Number = :station");
+            $stmt->execute(['status' => $status, 'station' => $station]);
 
             echo json_encode(['success' => true]);
             break;
@@ -290,15 +305,10 @@ try {
                 exit;
             }
 
-            $serial = trim($inputData['serial_number'] ?? '');
+            $station = intval($inputData['Station_Number'] ?? 0);
 
-            if (empty($serial)) {
-                echo json_encode(['success' => false, 'message' => 'Serial Number is required.']);
-                exit;
-            }
-
-            $stmt = $db->prepare("DELETE FROM assets WHERE serial_number = :serial");
-            $stmt->execute(['serial' => $serial]);
+            $stmt = $db->prepare("DELETE FROM assets WHERE Station_Number = :station");
+            $stmt->execute(['station' => $station]);
 
             echo json_encode(['success' => true]);
             break;
@@ -318,34 +328,25 @@ try {
 
             // Seed array
             $defaults = [
-                [0, '0lu4htkq100216b', 'SAMSUNG S22E390H', 'Samsung', 'Monitor', 'Macys', '3rd', 'UP2', 'Deployed', '2026-06-02 18:58:00', '2026-06-02 18:58:00'],
-                [1, '3cq40312cr', 'HP P201', 'HP', 'Monitor', 'Macys', '4th', 'UP2', 'Deployed', '2026-06-02 18:58:00', '2026-06-02 18:58:00'],
-                [0, '3cq40312dv', 'HP P201', 'HP', 'Monitor', 'Elevance', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
-                [0, '3cq4210v7v', 'HP P201', 'HP', 'Monitor', 'Oscar', '2nd', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
-                [0, '3cq4210v8g', 'HP P201', 'HP', 'Monitor', 'Elevance', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
-                [0, '3cq4210wh4', 'HP P201', 'HP', 'Monitor', 'UHG', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
-                [0, '3cq4210whj', 'HP PRODISPLAY P201', 'HP', 'Monitor', 'Oscar', '2nd', 'UP2', 'Pulled Out', '2026-06-02 18:58:00', '2026-06-02 11:46:00'],
-                [0, '3cq4210whl', 'HP PRODISPLAY P201', 'HP', 'Monitor', 'Oscar', '2nd', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
-                [0, '3cq4210wj1', 'HP P201', 'HP', 'Monitor', 'Highmark', 'Ground Floor', 'UP2', 'Deployed', '2026-06-02 18:58:00', '2026-06-02 16:01:00'],
-                [0, '3cq4210wr4', 'HP P201', 'HP', 'Monitor', 'Highmark', 'Ground Floor', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
-                [0, '3cq4210ws7', 'HP P201', 'HP', 'Monitor', 'Elevance', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
-                [0, '6cm3413s1b', 'HP P201', 'HP', 'Monitor', 'UHG', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
-                [0, '6cm3413sz2', 'HP P201', 'HP', 'Monitor', 'UHG', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
-                [0, '6cm3502bxx', 'HP P201', 'HP', 'Monitor', 'Elevance', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
-                [0, '6cm3502cr3', 'HP P201', 'HP', 'Monitor', 'Elevance', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
-                [0, '6cm4060ldp', 'HP P201', 'HP', 'Monitor', 'UHG', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
-                [0, '6cm4160rv0', 'HP PRODISPLAY P201', 'HP', 'Monitor', 'Oscar', '2nd', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
-                [0, '6cm4160un9', 'HP P201', 'HP', 'Monitor', 'Highmark', 'Ground Floor', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
-                [0, '6cm4172zt5', 'HP P201', 'HP', 'Monitor', 'UHG', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
-                [0, '6cm5161123', 'HP P202', 'HP', 'Monitor', 'Elevance', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
-                [0, '6cm52619gc', 'HP P221', 'HP', 'Monitor', 'Xerox', '3rd', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
-                [0, '6cm5260jnm', 'HP P201', 'HP', 'Monitor', 'Elevance', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL]
+                [101, 'ProDesk 600 G3', '3CQ7482Z7X', 'HP', 'EliteDisplay E232', '6CM7451FL8', 'HP', 'EliteDisplay E232', '6CM7451FL9', 'HP', 'EliteDisplay E232', '6CM7451FL0', 'HP', 'Macys', '3rd', 'UP2', 'Deployed', '2026-06-02 18:58:00', '2026-06-02 18:58:00'],
+                [102, 'EliteDesk 800 G4', '3CQ8120W2Y', 'HP', 'EliteDisplay E233', '6CM8190Y2B', 'HP', 'EliteDisplay E233', '6CM8190Y2C', 'HP', NULL, NULL, NULL, 'Macys', '4th', 'UP2', 'Deployed', '2026-06-02 18:58:00', '2026-06-02 18:58:00'],
+                [103, 'OptiPlex 7050', 'CN07F10V3S', 'Dell', 'Dell P2417H', 'CN03V10W2R', 'Dell', 'Dell P2417H', 'CN03V10W2S', 'Dell', 'Dell P2417H', 'CN03V10W2T', 'Dell', 'Elevance', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
+                [104, 'ThinkCentre M720q', 'PC09X12Y', 'Lenovo', 'ThinkVision T23d', 'V10Y7812', 'Lenovo', 'ThinkVision T23d', 'V10Y7813', 'Lenovo', NULL, NULL, NULL, 'Oscar', '2nd', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
+                [105, 'ProDesk 600 G3', '3CQ7482Z8Y', 'HP', 'EliteDisplay E232', '6CM7451FM1', 'HP', 'EliteDisplay E232', '6CM7451FM2', 'HP', NULL, NULL, NULL, 'Elevance', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
+                [106, 'EliteDesk 800 G4', '3CQ8120W3Z', 'HP', 'EliteDisplay E233', '6CM8190Y3D', 'HP', 'EliteDisplay E233', '6CM8190Y3E', 'HP', NULL, NULL, NULL, 'UHG', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
+                [107, 'OptiPlex 7050', 'CN07F10V4T', 'Dell', 'Dell P2417H', 'CN03V10W3T', 'Dell', 'Dell P2417H', 'CN03V10W3U', 'Dell', NULL, NULL, NULL, 'Oscar', '2nd', 'UP2', 'Pulled Out', '2026-06-02 18:58:00', '2026-06-02 11:46:00'],
+                [108, 'ThinkCentre M720q', 'PC09X13Z', 'Lenovo', 'ThinkVision T23d', 'V10Y7814', 'Lenovo', 'ThinkVision T23d', 'V10Y7815', 'Lenovo', NULL, NULL, NULL, 'Oscar', '2nd', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
+                [109, 'ProDesk 600 G3', '3CQ7482Z9Z', 'HP', 'EliteDisplay E232', '6CM7451FM3', 'HP', 'EliteDisplay E232', '6CM7451FM4', 'HP', NULL, NULL, NULL, 'Highmark', 'Ground Floor', 'UP2', 'Deployed', '2026-06-02 18:58:00', '2026-06-02 16:01:00'],
+                [110, 'EliteDesk 800 G4', '3CQ8120W4A', 'HP', 'EliteDisplay E233', '6CM8190Y4F', 'HP', 'EliteDisplay E233', '6CM8190Y4G', 'HP', NULL, NULL, NULL, 'Highmark', 'Ground Floor', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL]
             ];
 
             $insSql = "INSERT INTO assets (
-                            station_number, serial_number, model_of_asset, brand_of_asset, 
-                            type_of_asset, program, asset_located_floor, site, current_status, created_date, modified_date
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                            Station_Number, CPU_Model, CPU_Serial, CPU_Brand,
+                            Monitor1_Model, Monitor1_Serial, Monitor1_Brand,
+                            Monitor2_Model, Monitor2_Serial, Monitor2_Brand,
+                            Monitor3_Model, Monitor3_Serial, Monitor3_Brand,
+                            Program, Asset_located_floor, Site, Current_Status, Created_Date, Modified_Date
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             
             $stmt = $db->prepare($insSql);
             foreach ($defaults as $row) {

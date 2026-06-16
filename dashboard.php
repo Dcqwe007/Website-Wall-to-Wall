@@ -75,19 +75,25 @@ if (!isset($_SESSION['aether_session_token'])) {
       <table class="table-custom">
         <thead>
           <tr>
-            <th data-sort="AssetId">AssetId<span class="sort-indicator"></span></th>
-            <th data-sort="StationNumber">StationNumber<span class="sort-indicator"></span></th>
-            <th data-sort="SerialNumber">SerialNumber<span class="sort-indicator"></span></th>
-            <th data-sort="OriginalSerialNumber">OriginalSerialNumber<span class="sort-indicator"></span></th>
-            <th data-sort="ModelOfAsset">ModelOfAsset<span class="sort-indicator"></span></th>
-            <th data-sort="BrandOfAsset">BrandOfAsset<span class="sort-indicator"></span></th>
-            <th data-sort="AssetType">AssetType<span class="sort-indicator"></span></th>
+            <th data-sort="Station_Number">Station No.<span class="sort-indicator"></span></th>
+            <th data-sort="CPU_Model">CPU Model<span class="sort-indicator"></span></th>
+            <th data-sort="CPU_Serial">CPU Serial<span class="sort-indicator"></span></th>
+            <th data-sort="CPU_Brand">CPU Brand<span class="sort-indicator"></span></th>
+            <th data-sort="Monitor1_Model">Mon1 Model<span class="sort-indicator"></span></th>
+            <th data-sort="Monitor1_Serial">Mon1 Serial<span class="sort-indicator"></span></th>
+            <th data-sort="Monitor1_Brand">Mon1 Brand<span class="sort-indicator"></span></th>
+            <th data-sort="Monitor2_Model">Mon2 Model<span class="sort-indicator"></span></th>
+            <th data-sort="Monitor2_Serial">Mon2 Serial<span class="sort-indicator"></span></th>
+            <th data-sort="Monitor2_Brand">Mon2 Brand<span class="sort-indicator"></span></th>
+            <th data-sort="Monitor3_Model">Mon3 Model<span class="sort-indicator"></span></th>
+            <th data-sort="Monitor3_Serial">Mon3 Serial<span class="sort-indicator"></span></th>
+            <th data-sort="Monitor3_Brand">Mon3 Brand<span class="sort-indicator"></span></th>
             <th data-sort="Program">Program<span class="sort-indicator"></span></th>
-            <th data-sort="AssetLocatedFloor">AssetLocatedFloor<span class="sort-indicator"></span></th>
+            <th data-sort="Asset_located_floor">Floor<span class="sort-indicator"></span></th>
             <th data-sort="Site">Site<span class="sort-indicator"></span></th>
-            <th data-sort="CurrentStatus">CurrentStatus<span class="sort-indicator"></span></th>
-            <th data-sort="CreatedDate">CreatedDate<span class="sort-indicator"></span></th>
-            <th data-sort="ModifiedDate">ModifiedDate<span class="sort-indicator"></span></th>
+            <th data-sort="Current_Status">Status<span class="sort-indicator"></span></th>
+            <th data-sort="Created_Date">Created<span class="sort-indicator"></span></th>
+            <th data-sort="Modified_Date">Modified<span class="sort-indicator"></span></th>
           </tr>
         </thead>
         <tbody id="assets-table-body">
@@ -143,31 +149,60 @@ if (!isset($_SESSION['aether_session_token'])) {
         <div class="modal-grid">
           <div class="form-group">
             <label class="form-label">Station Number</label>
-            <input type="number" class="modal-input-field" id="add-station" required placeholder="e.g. 0">
+            <input type="number" class="modal-input-field" id="add-station" required placeholder="e.g. 101">
           </div>
           <div class="form-group">
-            <label class="form-label">Serial Number</label>
-            <input type="text" class="modal-input-field" id="add-serial" required placeholder="e.g. 3cq4210v7v">
+            <label class="form-label">CPU Model</label>
+            <input type="text" class="modal-input-field" id="add-cpu-model" placeholder="e.g. HP EliteDesk 800 G5">
           </div>
           <div class="form-group">
-            <label class="form-label">Original Serial Number</label>
-            <input type="text" class="modal-input-field" id="add-orig-serial" required placeholder="e.g. 3cq4210v7v">
+            <label class="form-label">CPU Serial</label>
+            <input type="text" class="modal-input-field" id="add-cpu-serial" placeholder="e.g. 3CQ4210V7V">
           </div>
           <div class="form-group">
-            <label class="form-label">Model of Asset</label>
-            <input type="text" class="modal-input-field" id="add-model" required placeholder="e.g. HP P201">
+            <label class="form-label">CPU Brand</label>
+            <input type="text" class="modal-input-field" id="add-cpu-brand" placeholder="e.g. HP">
           </div>
           <div class="form-group">
-            <label class="form-label">Brand of Asset</label>
-            <input type="text" class="modal-input-field" id="add-brand" required placeholder="e.g. HP">
+            <label class="form-label">Monitor 1 Model</label>
+            <input type="text" class="modal-input-field" id="add-mon1-model" placeholder="e.g. HP P201">
           </div>
           <div class="form-group">
-            <label class="form-label">Asset Type</label>
-            <input type="text" class="modal-input-field" id="add-type" required placeholder="e.g. Monitor">
+            <label class="form-label">Monitor 1 Serial</label>
+            <input type="text" class="modal-input-field" id="add-mon1-serial" placeholder="e.g. 6CM3413S1B">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Monitor 1 Brand</label>
+            <input type="text" class="modal-input-field" id="add-mon1-brand" placeholder="e.g. HP">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Monitor 2 Model</label>
+            <input type="text" class="modal-input-field" id="add-mon2-model" placeholder="e.g. Samsung S22E390H">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Monitor 2 Serial</label>
+            <input type="text" class="modal-input-field" id="add-mon2-serial" placeholder="e.g. 0LU4HTKQ100216B">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Monitor 2 Brand</label>
+            <input type="text" class="modal-input-field" id="add-mon2-brand" placeholder="e.g. Samsung">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Monitor 3 Model</label>
+            <input type="text" class="modal-input-field" id="add-mon3-model" placeholder="e.g. Dell P2419H">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Monitor 3 Serial</label>
+            <input type="text" class="modal-input-field" id="add-mon3-serial" placeholder="e.g. CN07F10V5U">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Monitor 3 Brand</label>
+            <input type="text" class="modal-input-field" id="add-mon3-brand" placeholder="e.g. Dell">
           </div>
           <div class="form-group">
             <label class="form-label">Program</label>
             <select class="modal-input-field" id="add-program">
+              <option value="">-- Select Program --</option>
               <option value="Macys">Macys</option>
               <option value="Elevance">Elevance</option>
               <option value="Oscar">Oscar</option>
@@ -178,11 +213,11 @@ if (!isset($_SESSION['aether_session_token'])) {
           </div>
           <div class="form-group">
             <label class="form-label">Located Floor</label>
-            <input type="text" class="modal-input-field" id="add-floor" required placeholder="e.g. 4th">
+            <input type="text" class="modal-input-field" id="add-floor" placeholder="e.g. 4th">
           </div>
           <div class="form-group">
             <label class="form-label">Site</label>
-            <input type="text" class="modal-input-field" id="add-site" required placeholder="e.g. UP2">
+            <input type="text" class="modal-input-field" id="add-site" placeholder="e.g. UP2">
           </div>
           <div class="form-group">
             <label class="form-label">Current Status</label>
@@ -214,35 +249,64 @@ if (!isset($_SESSION['aether_session_token'])) {
         </button>
       </div>
       <form id="form-edit-asset">
-        <input type="hidden" id="edit-asset-id">
+        <input type="hidden" id="edit-station-key">
         <div class="modal-grid">
           <div class="form-group">
             <label class="form-label">Station Number</label>
             <input type="number" class="modal-input-field" id="edit-station" required>
           </div>
           <div class="form-group">
-            <label class="form-label">Serial Number</label>
-            <input type="text" class="modal-input-field" id="edit-serial" required>
+            <label class="form-label">CPU Model</label>
+            <input type="text" class="modal-input-field" id="edit-cpu-model">
           </div>
           <div class="form-group">
-            <label class="form-label">Original Serial Number</label>
-            <input type="text" class="modal-input-field" id="edit-orig-serial" required>
+            <label class="form-label">CPU Serial</label>
+            <input type="text" class="modal-input-field" id="edit-cpu-serial">
           </div>
           <div class="form-group">
-            <label class="form-label">Model of Asset</label>
-            <input type="text" class="modal-input-field" id="edit-model" required>
+            <label class="form-label">CPU Brand</label>
+            <input type="text" class="modal-input-field" id="edit-cpu-brand">
           </div>
           <div class="form-group">
-            <label class="form-label">Brand of Asset</label>
-            <input type="text" class="modal-input-field" id="edit-brand" required>
+            <label class="form-label">Monitor 1 Model</label>
+            <input type="text" class="modal-input-field" id="edit-mon1-model">
           </div>
           <div class="form-group">
-            <label class="form-label">Asset Type</label>
-            <input type="text" class="modal-input-field" id="edit-type" required>
+            <label class="form-label">Monitor 1 Serial</label>
+            <input type="text" class="modal-input-field" id="edit-mon1-serial">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Monitor 1 Brand</label>
+            <input type="text" class="modal-input-field" id="edit-mon1-brand">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Monitor 2 Model</label>
+            <input type="text" class="modal-input-field" id="edit-mon2-model">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Monitor 2 Serial</label>
+            <input type="text" class="modal-input-field" id="edit-mon2-serial">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Monitor 2 Brand</label>
+            <input type="text" class="modal-input-field" id="edit-mon2-brand">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Monitor 3 Model</label>
+            <input type="text" class="modal-input-field" id="edit-mon3-model">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Monitor 3 Serial</label>
+            <input type="text" class="modal-input-field" id="edit-mon3-serial">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Monitor 3 Brand</label>
+            <input type="text" class="modal-input-field" id="edit-mon3-brand">
           </div>
           <div class="form-group">
             <label class="form-label">Program</label>
             <select class="modal-input-field" id="edit-program">
+              <option value="">-- Select Program --</option>
               <option value="Macys">Macys</option>
               <option value="Elevance">Elevance</option>
               <option value="Oscar">Oscar</option>
@@ -253,11 +317,11 @@ if (!isset($_SESSION['aether_session_token'])) {
           </div>
           <div class="form-group">
             <label class="form-label">Located Floor</label>
-            <input type="text" class="modal-input-field" id="edit-floor" required>
+            <input type="text" class="modal-input-field" id="edit-floor">
           </div>
           <div class="form-group">
             <label class="form-label">Site</label>
-            <input type="text" class="modal-input-field" id="edit-site" required>
+            <input type="text" class="modal-input-field" id="edit-site">
           </div>
           <div class="form-group">
             <label class="form-label">Current Status</label>
