@@ -165,7 +165,7 @@ if (isset($_SESSION['aether_session_token'])) {
       width: 52px;
       height: 52px;
       object-fit: contain;
-      filter: brightness(0) invert(1);
+      border-radius: 50%;
     }
 
     .brand-logo-text {
