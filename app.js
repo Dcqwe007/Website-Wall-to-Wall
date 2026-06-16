@@ -698,27 +698,33 @@ document.addEventListener('DOMContentLoaded', () => {
        5. FOOTER CONTROL ACTIONS (REFRESH, CSV EXPORT, LOGOUT)
        ======================================================== */
     
-    // Refresh / reset database to mock default records
+    // Refresh / reload data from the database
     btnRefresh.addEventListener('click', () => {
       const icon = document.getElementById('refresh-icon');
       icon.classList.add('rotating');
       
-      fetch('api.php?action=reset')
-      .then(res => res.json())
-      .then(data => {
+      // Clear selections and filters on refresh
+      selectedStation = null;
+      searchQuery = '';
+      selectedProgram = 'All';
+      if (searchInput) searchInput.value = '';
+      if (programSelect) programSelect.value = 'All';
+
+      // Fetch the latest data from the database without resetting/wiping it
+      fetch('api.php?action=fetch')
+      .then(res => {
+        if (!res.ok) throw new Error("Unauthorized or server connection failure");
+        return res.json();
+      })
+      .then(res => {
         setTimeout(() => {
           icon.classList.remove('rotating');
-          if (data.success) {
-            selectedStation = null;
-            searchQuery = '';
-            selectedProgram = 'All';
-            if (searchInput) searchInput.value = '';
-            if (programSelect) programSelect.value = 'All';
-            
-            fetchAssetsFromDatabase();
-            showToast("Database Restored", "XAMPP table records re-seeded to default mock list.", "info");
+          if (res.success) {
+            assetsList = res.data || [];
+            renderTable();
+            showToast("Data Refreshed", "Asset records loaded from database.", "info");
           } else {
-            showToast("Reset Failed", data.message || "Database cleanup query failed.", "danger");
+            showToast("Fetch Error", res.message || "Failed to fetch assets.", "danger");
           }
         }, 600);
       })
