@@ -4,13 +4,13 @@ document.addEventListener('DOMContentLoaded', () => {
      1. TOAST NOTIFICATION SYSTEM
      ======================================================== */
   const toastContainer = document.getElementById('toast-container');
-  
+
   function showToast(title, message, type = 'info') {
     if (!toastContainer) return;
 
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    
+
     let iconName = 'info';
     if (type === 'success') iconName = 'check-circle';
     if (type === 'danger') iconName = 'alert-triangle';
@@ -52,12 +52,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const loginForm = document.getElementById('login-form');
   const togglePasswordBtn = document.getElementById('toggle-password-btn');
   const passwordField = document.getElementById('password');
-  
+
   if (togglePasswordBtn && passwordField) {
     togglePasswordBtn.addEventListener('click', () => {
       const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
       passwordField.setAttribute('type', type);
-      
+
       const icon = togglePasswordBtn.querySelector('i');
       if (icon) {
         if (type === 'text') {
@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (loginForm) {
     loginForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      
+
       const emailInput = document.getElementById('email').value.trim();
       const passwordInput = passwordField.value;
       const submitBtn = document.getElementById('btn-login-submit');
@@ -95,30 +95,73 @@ document.addEventListener('DOMContentLoaded', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailInput, password: passwordInput })
       })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          // Store token client-side for backup checks
-          sessionStorage.setItem('aether_session_token', 'active');
-          window.location.href = 'dashboard.php';
-        } else {
-          errorMessage.textContent = data.message || "Incorrect email/username or password.";
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            // Store token client-side for backup checks
+            sessionStorage.setItem('aether_session_token', 'active');
+
+            // Trigger the premium full-screen loading transition
+            const overlay = document.getElementById('login-loader-overlay');
+            const progressBar = document.getElementById('loader-progress-bar');
+            const progressPct = document.getElementById('loader-progress-pct');
+            const loaderStatus = document.getElementById('loader-status');
+
+            if (overlay && progressBar && progressPct && loaderStatus) {
+              overlay.classList.add('active');
+
+              const duration = 4000; // 4.0 seconds animation transition duration
+              const startTime = performance.now();
+
+              function animate(now) {
+                const elapsed = now - startTime;
+                const progress = Math.min((elapsed / duration) * 100, 100);
+
+                progressBar.style.width = `${progress}%`;
+                progressPct.textContent = `${Math.round(progress)}%`;
+
+                // Dynamically change loading phase messages based on percentage progress
+                if (progress < 25) {
+                  loaderStatus.textContent = "Credentials approved. Authenticating session...";
+                } else if (progress < 55) {
+                  loaderStatus.textContent = "Initializing Concentrix UP 2 IT node...";
+                } else if (progress < 85) {
+                  loaderStatus.textContent = "Loading asset tracking database records...";
+                } else {
+                  loaderStatus.textContent = "Redirecting to dashboard portal...";
+                }
+
+                if (progress < 100) {
+                  requestAnimationFrame(animate);
+                } else {
+                  setTimeout(() => {
+                    window.location.href = 'dashboard.php';
+                  }, 150);
+                }
+              }
+              requestAnimationFrame(animate);
+            } else {
+              // Fallback redirect if elements are missing from the page
+              window.location.href = 'dashboard.php';
+            }
+          } else {
+            errorMessage.textContent = data.message || "Incorrect email/username or password.";
+            errorAlert.style.display = 'flex';
+
+            btnText.textContent = "Sign In";
+            spinner.style.display = "none";
+            submitBtn.disabled = false;
+          }
+        })
+        .catch(err => {
+          errorMessage.textContent = "Server Connection error. Please check XAMPP services.";
           errorAlert.style.display = 'flex';
-          
+
           btnText.textContent = "Sign In";
           spinner.style.display = "none";
           submitBtn.disabled = false;
-        }
-      })
-      .catch(err => {
-        errorMessage.textContent = "Server Connection error. Please check XAMPP services.";
-        errorAlert.style.display = 'flex';
-        
-        btnText.textContent = "Sign In";
-        spinner.style.display = "none";
-        submitBtn.disabled = false;
-        console.error("Login failure: ", err);
-      });
+          console.error("Login failure: ", err);
+        });
     });
 
     ['btn-google-login', 'btn-github-login', 'forgot-password-link'].forEach(id => {
@@ -146,7 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.addEventListener('click', () => {
         const type = field.getAttribute('type') === 'password' ? 'text' : 'password';
         field.setAttribute('type', type);
-        
+
         const icon = btn.querySelector('i');
         if (icon) {
           if (type === 'text') {
@@ -166,7 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (signupForm) {
     signupForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      
+
       const usernameInput = document.getElementById('signup-username').value.trim();
       const emailInput = document.getElementById('signup-email').value.trim();
       const passwordInput = signupPassword.value;
@@ -175,7 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const submitBtn = document.getElementById('btn-signup-submit');
       const btnText = submitBtn.querySelector('.btn-text');
       const spinner = submitBtn.querySelector('.spinner');
-      
+
       const errorAlert = document.getElementById('signup-error-alert');
       const errorMessage = document.getElementById('signup-error-message');
       const successAlert = document.getElementById('signup-success-alert');
@@ -207,35 +250,35 @@ document.addEventListener('DOMContentLoaded', () => {
           confirm_password: confirmPasswordInput
         })
       })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          successMessage.textContent = "Account created successfully! Redirecting to login...";
-          successAlert.style.display = 'flex';
-          
-          signupForm.reset();
-          
-          setTimeout(() => {
-            window.location.href = 'index.php';
-          }, 2000);
-        } else {
-          errorMessage.textContent = data.message || "Failed to create account.";
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            successMessage.textContent = "Account created successfully! Redirecting to login...";
+            successAlert.style.display = 'flex';
+
+            signupForm.reset();
+
+            setTimeout(() => {
+              window.location.href = 'index.php';
+            }, 2000);
+          } else {
+            errorMessage.textContent = data.message || "Failed to create account.";
+            errorAlert.style.display = 'flex';
+
+            btnText.textContent = "Register Account";
+            spinner.style.display = "none";
+            submitBtn.disabled = false;
+          }
+        })
+        .catch(err => {
+          errorMessage.textContent = "Server Connection error. Please check XAMPP services.";
           errorAlert.style.display = 'flex';
-          
+
           btnText.textContent = "Register Account";
           spinner.style.display = "none";
           submitBtn.disabled = false;
-        }
-      })
-      .catch(err => {
-        errorMessage.textContent = "Server Connection error. Please check XAMPP services.";
-        errorAlert.style.display = 'flex';
-        
-        btnText.textContent = "Register Account";
-        spinner.style.display = "none";
-        submitBtn.disabled = false;
-        console.error("Signup failure: ", err);
-      });
+          console.error("Signup failure: ", err);
+        });
     });
   }
 
@@ -244,9 +287,9 @@ document.addEventListener('DOMContentLoaded', () => {
      3. MONITORING SYSTEM DATABASE & CRUD HANDLERS
      ======================================================== */
   const dashboardContainer = document.querySelector('.dashboard-container');
-  
+
   if (dashboardContainer) {
-    
+
     // Active UI state
     let assetsList = [];
     let currentFilteredList = []; // Tracks currently visible/filtered rows for CSV export
@@ -277,25 +320,53 @@ document.addEventListener('DOMContentLoaded', () => {
       btnUpdateStatus.disabled = !isSelected;
     }
 
+    // Rebuild the Program drop-down based on active database records dynamically
+    function populateProgramDropdown() {
+      if (!programSelect) return;
+      
+      const previousSelection = programSelect.value || 'All';
+      
+      // Get unique sorted list of programs from the active database records
+      const programs = [...new Set(assetsList.map(a => a.Program).filter(p => p && p.trim() !== ''))];
+      programs.sort();
+      
+      programSelect.innerHTML = '<option value="All">All Programs</option>';
+      programs.forEach(prog => {
+        const opt = document.createElement('option');
+        opt.value = prog;
+        opt.textContent = prog;
+        programSelect.appendChild(opt);
+      });
+      
+      if (programs.includes(previousSelection)) {
+        programSelect.value = previousSelection;
+        selectedProgram = previousSelection;
+      } else {
+        programSelect.value = 'All';
+        selectedProgram = 'All';
+      }
+    }
+
     // Load assets from database API
     function fetchAssetsFromDatabase() {
       fetch('api.php?action=fetch')
-      .then(res => {
-        if (!res.ok) throw new Error("Unauthorized or server connection failure");
-        return res.json();
-      })
-      .then(res => {
-        if (res.success) {
-          assetsList = res.data || [];
-          renderTable();
-        } else {
-          showToast("Fetch Error", res.message || "Failed to fetch assets.", "danger");
-        }
-      })
-      .catch(err => {
-        showToast("System Connection Error", "Could not connect to database API. Check XAMPP MySQL.", "danger");
-        console.error(err);
-      });
+        .then(res => {
+          if (!res.ok) throw new Error("Unauthorized or server connection failure");
+          return res.json();
+        })
+        .then(res => {
+          if (res.success) {
+            assetsList = res.data || [];
+            populateProgramDropdown();
+            renderTable();
+          } else {
+            showToast("Fetch Error", res.message || "Failed to fetch assets.", "danger");
+          }
+        })
+        .catch(err => {
+          showToast("System Connection Error", "Could not connect to database API. Check XAMPP MySQL.", "danger");
+          console.error(err);
+        });
     }
 
     /* ========================================================
@@ -303,13 +374,13 @@ document.addEventListener('DOMContentLoaded', () => {
        ======================================================== */
     function renderTable() {
       tableBody.innerHTML = '';
-      
+
       // 1. Client side filters (Search input & Program dropdown)
       let filtered = assetsList.filter(asset => {
         if (selectedProgram !== 'All' && asset.Program !== selectedProgram) {
           return false;
         }
-        
+
         if (searchQuery) {
           const matchParts = [
             asset.Station_Number,
@@ -335,7 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const matchStr = matchParts.map(val => (val !== null && val !== undefined) ? val.toString().toLowerCase() : '').join(' ');
           return matchStr.includes(searchQuery);
         }
-        
+
         return true;
       });
 
@@ -364,11 +435,11 @@ document.addEventListener('DOMContentLoaded', () => {
         emptyMessage.style.display = 'block';
       } else {
         emptyMessage.style.display = 'none';
-        
+
         filtered.forEach(asset => {
           const tr = document.createElement('tr');
           tr.setAttribute('data-station', asset.Station_Number);
-          
+
           if (selectedStation == asset.Station_Number) {
             tr.classList.add('selected');
           }
@@ -420,7 +491,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const activeObj = assetsList.find(a => a.Station_Number == selectedStation);
       const selectedText = activeObj ? `Station ${activeObj.Station_Number}` : 'None';
       statsText.innerHTML = `Total Assets: <strong>${assetsList.length}</strong> | Visible: <strong>${filtered.length}</strong> | Selected: <strong>${selectedText}</strong>`;
-      
+
       updateActionButtonStates();
     }
 
@@ -428,7 +499,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('th[data-sort]').forEach(th => {
       th.addEventListener('click', () => {
         const dbCol = th.getAttribute('data-sort');
-        
+
         document.querySelectorAll('th').forEach(header => {
           header.classList.remove('sorted-asc', 'sorted-desc');
         });
@@ -483,10 +554,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function setupModalClose(modal, closeBtnId, cancelBtnId) {
       const closeBtn = document.getElementById(closeBtnId);
       const cancelBtn = document.getElementById(cancelBtnId);
-      
+
       if (closeBtn) closeBtn.addEventListener('click', () => closeModal(modal));
       if (cancelBtn) cancelBtn.addEventListener('click', () => closeModal(modal));
-      
+
       modal.addEventListener('click', (e) => {
         if (e.target === modal) closeModal(modal);
       });
@@ -506,25 +577,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // Handle Add Asset
     document.getElementById('form-add-asset').addEventListener('submit', (e) => {
       e.preventDefault();
-      
+
       const payload = {
-        Station_Number:       parseInt(document.getElementById('add-station').value) || 0,
-        CPU_Model:            document.getElementById('add-cpu-model').value.trim(),
-        CPU_Serial:           document.getElementById('add-cpu-serial').value.trim(),
-        CPU_Brand:            document.getElementById('add-cpu-brand').value.trim(),
-        Monitor1_Model:       document.getElementById('add-mon1-model').value.trim(),
-        Monitor1_Serial:      document.getElementById('add-mon1-serial').value.trim(),
-        Monitor1_Brand:       document.getElementById('add-mon1-brand').value.trim(),
-        Monitor2_Model:       document.getElementById('add-mon2-model').value.trim(),
-        Monitor2_Serial:      document.getElementById('add-mon2-serial').value.trim(),
-        Monitor2_Brand:       document.getElementById('add-mon2-brand').value.trim(),
-        Monitor3_Model:       document.getElementById('add-mon3-model').value.trim(),
-        Monitor3_Serial:      document.getElementById('add-mon3-serial').value.trim(),
-        Monitor3_Brand:       document.getElementById('add-mon3-brand').value.trim(),
-        Program:              document.getElementById('add-program').value,
-        Asset_located_floor:  document.getElementById('add-floor').value.trim(),
-        Site:                 document.getElementById('add-site').value.trim(),
-        Current_Status:       document.getElementById('add-status').value
+        Station_Number: parseInt(document.getElementById('add-station').value) || 0,
+        CPU_Model: document.getElementById('add-cpu-model').value.trim(),
+        CPU_Serial: document.getElementById('add-cpu-serial').value.trim(),
+        CPU_Brand: document.getElementById('add-cpu-brand').value.trim(),
+        Monitor1_Model: document.getElementById('add-mon1-model').value.trim(),
+        Monitor1_Serial: document.getElementById('add-mon1-serial').value.trim(),
+        Monitor1_Brand: document.getElementById('add-mon1-brand').value.trim(),
+        Monitor2_Model: document.getElementById('add-mon2-model').value.trim(),
+        Monitor2_Serial: document.getElementById('add-mon2-serial').value.trim(),
+        Monitor2_Brand: document.getElementById('add-mon2-brand').value.trim(),
+        Monitor3_Model: document.getElementById('add-mon3-model').value.trim(),
+        Monitor3_Serial: document.getElementById('add-mon3-serial').value.trim(),
+        Monitor3_Brand: document.getElementById('add-mon3-brand').value.trim(),
+        Program: document.getElementById('add-program').value,
+        Asset_located_floor: document.getElementById('add-floor').value.trim(),
+        Site: document.getElementById('add-site').value.trim(),
+        Current_Status: document.getElementById('add-status').value
       };
 
       fetch('api.php?action=add', {
@@ -532,20 +603,20 @@ document.addEventListener('DOMContentLoaded', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          closeModal(modalAdd);
-          fetchAssetsFromDatabase();
-          showToast("Asset Cataloged", `Station ${payload.Station_Number} written to database.`, "success");
-        } else {
-          showToast("Database Validation Failed", data.message || "Could not write record.", "danger");
-        }
-      })
-      .catch(err => {
-        showToast("Server Connection Error", "Check XAMPP services.", "danger");
-        console.error(err);
-      });
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            closeModal(modalAdd);
+            fetchAssetsFromDatabase();
+            showToast("Asset Cataloged", `Station ${payload.Station_Number} written to database.`, "success");
+          } else {
+            showToast("Database Validation Failed", data.message || "Could not write record.", "danger");
+          }
+        })
+        .catch(err => {
+          showToast("Server Connection Error", "Check XAMPP services.", "danger");
+          console.error(err);
+        });
     });
 
     // Trigger Edit Modal
@@ -553,24 +624,24 @@ document.addEventListener('DOMContentLoaded', () => {
       const asset = assetsList.find(a => a.Station_Number == selectedStation);
       if (!asset) return;
 
-      document.getElementById('edit-station-key').value  = asset.Station_Number;
-      document.getElementById('edit-station').value       = asset.Station_Number;
-      document.getElementById('edit-cpu-model').value     = asset.CPU_Model || '';
-      document.getElementById('edit-cpu-serial').value    = asset.CPU_Serial || '';
-      document.getElementById('edit-cpu-brand').value     = asset.CPU_Brand || '';
-      document.getElementById('edit-mon1-model').value    = asset.Monitor1_Model || '';
-      document.getElementById('edit-mon1-serial').value   = asset.Monitor1_Serial || '';
-      document.getElementById('edit-mon1-brand').value    = asset.Monitor1_Brand || '';
-      document.getElementById('edit-mon2-model').value    = asset.Monitor2_Model || '';
-      document.getElementById('edit-mon2-serial').value   = asset.Monitor2_Serial || '';
-      document.getElementById('edit-mon2-brand').value    = asset.Monitor2_Brand || '';
-      document.getElementById('edit-mon3-model').value    = asset.Monitor3_Model || '';
-      document.getElementById('edit-mon3-serial').value   = asset.Monitor3_Serial || '';
-      document.getElementById('edit-mon3-brand').value    = asset.Monitor3_Brand || '';
-      document.getElementById('edit-program').value        = asset.Program || '';
-      document.getElementById('edit-floor').value          = asset.Asset_located_floor || '';
-      document.getElementById('edit-site').value           = asset.Site || '';
-      document.getElementById('edit-status').value         = asset.Current_Status || 'Deployed';
+      document.getElementById('edit-station-key').value = asset.Station_Number;
+      document.getElementById('edit-station').value = asset.Station_Number;
+      document.getElementById('edit-cpu-model').value = asset.CPU_Model || '';
+      document.getElementById('edit-cpu-serial').value = asset.CPU_Serial || '';
+      document.getElementById('edit-cpu-brand').value = asset.CPU_Brand || '';
+      document.getElementById('edit-mon1-model').value = asset.Monitor1_Model || '';
+      document.getElementById('edit-mon1-serial').value = asset.Monitor1_Serial || '';
+      document.getElementById('edit-mon1-brand').value = asset.Monitor1_Brand || '';
+      document.getElementById('edit-mon2-model').value = asset.Monitor2_Model || '';
+      document.getElementById('edit-mon2-serial').value = asset.Monitor2_Serial || '';
+      document.getElementById('edit-mon2-brand').value = asset.Monitor2_Brand || '';
+      document.getElementById('edit-mon3-model').value = asset.Monitor3_Model || '';
+      document.getElementById('edit-mon3-serial').value = asset.Monitor3_Serial || '';
+      document.getElementById('edit-mon3-brand').value = asset.Monitor3_Brand || '';
+      document.getElementById('edit-program').value = asset.Program || '';
+      document.getElementById('edit-floor').value = asset.Asset_located_floor || '';
+      document.getElementById('edit-site').value = asset.Site || '';
+      document.getElementById('edit-status').value = asset.Current_Status || 'Deployed';
 
       openModal(modalEdit);
     });
@@ -578,27 +649,27 @@ document.addEventListener('DOMContentLoaded', () => {
     // Handle Edit Asset
     document.getElementById('form-edit-asset').addEventListener('submit', (e) => {
       e.preventDefault();
-      
+
       const oldStation = document.getElementById('edit-station-key').value;
       const payload = {
-        old_Station_Number:  parseInt(oldStation),
-        Station_Number:      parseInt(document.getElementById('edit-station').value) || 0,
-        CPU_Model:           document.getElementById('edit-cpu-model').value.trim(),
-        CPU_Serial:          document.getElementById('edit-cpu-serial').value.trim(),
-        CPU_Brand:           document.getElementById('edit-cpu-brand').value.trim(),
-        Monitor1_Model:      document.getElementById('edit-mon1-model').value.trim(),
-        Monitor1_Serial:     document.getElementById('edit-mon1-serial').value.trim(),
-        Monitor1_Brand:      document.getElementById('edit-mon1-brand').value.trim(),
-        Monitor2_Model:      document.getElementById('edit-mon2-model').value.trim(),
-        Monitor2_Serial:     document.getElementById('edit-mon2-serial').value.trim(),
-        Monitor2_Brand:      document.getElementById('edit-mon2-brand').value.trim(),
-        Monitor3_Model:      document.getElementById('edit-mon3-model').value.trim(),
-        Monitor3_Serial:     document.getElementById('edit-mon3-serial').value.trim(),
-        Monitor3_Brand:      document.getElementById('edit-mon3-brand').value.trim(),
-        Program:             document.getElementById('edit-program').value,
+        old_Station_Number: parseInt(oldStation),
+        Station_Number: parseInt(document.getElementById('edit-station').value) || 0,
+        CPU_Model: document.getElementById('edit-cpu-model').value.trim(),
+        CPU_Serial: document.getElementById('edit-cpu-serial').value.trim(),
+        CPU_Brand: document.getElementById('edit-cpu-brand').value.trim(),
+        Monitor1_Model: document.getElementById('edit-mon1-model').value.trim(),
+        Monitor1_Serial: document.getElementById('edit-mon1-serial').value.trim(),
+        Monitor1_Brand: document.getElementById('edit-mon1-brand').value.trim(),
+        Monitor2_Model: document.getElementById('edit-mon2-model').value.trim(),
+        Monitor2_Serial: document.getElementById('edit-mon2-serial').value.trim(),
+        Monitor2_Brand: document.getElementById('edit-mon2-brand').value.trim(),
+        Monitor3_Model: document.getElementById('edit-mon3-model').value.trim(),
+        Monitor3_Serial: document.getElementById('edit-mon3-serial').value.trim(),
+        Monitor3_Brand: document.getElementById('edit-mon3-brand').value.trim(),
+        Program: document.getElementById('edit-program').value,
         Asset_located_floor: document.getElementById('edit-floor').value.trim(),
-        Site:                document.getElementById('edit-site').value.trim(),
-        Current_Status:      document.getElementById('edit-status').value
+        Site: document.getElementById('edit-site').value.trim(),
+        Current_Status: document.getElementById('edit-status').value
       };
 
       fetch('api.php?action=edit', {
@@ -606,21 +677,21 @@ document.addEventListener('DOMContentLoaded', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          selectedStation = payload.Station_Number;
-          closeModal(modalEdit);
-          fetchAssetsFromDatabase();
-          showToast("Asset Updated", `Station ${payload.Station_Number} updated successfully.`, "success");
-        } else {
-          showToast("Database Validation Failed", data.message || "Could not update record.", "danger");
-        }
-      })
-      .catch(err => {
-        showToast("Server Connection Error", "Check XAMPP services.", "danger");
-        console.error(err);
-      });
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            selectedStation = payload.Station_Number;
+            closeModal(modalEdit);
+            fetchAssetsFromDatabase();
+            showToast("Asset Updated", `Station ${payload.Station_Number} updated successfully.`, "success");
+          } else {
+            showToast("Database Validation Failed", data.message || "Could not update record.", "danger");
+          }
+        })
+        .catch(err => {
+          showToast("Server Connection Error", "Check XAMPP services.", "danger");
+          console.error(err);
+        });
     });
 
     // Trigger Status Quick Modal
@@ -635,28 +706,28 @@ document.addEventListener('DOMContentLoaded', () => {
     // Handle Status Quick Update
     document.getElementById('form-update-status').addEventListener('submit', (e) => {
       e.preventDefault();
-      
+
       const newStatus = document.getElementById('quick-status-select').value;
-      
+
       fetch('api.php?action=status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ Station_Number: selectedStation, Current_Status: newStatus })
       })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          closeModal(modalStatus);
-          fetchAssetsFromDatabase();
-          showToast("Status Transitioned", `Status is now: ${newStatus}`, "success");
-        } else {
-          showToast("Status Update Failed", data.message || "Database update failed.", "danger");
-        }
-      })
-      .catch(err => {
-        showToast("Server Connection Error", "Check XAMPP services.", "danger");
-        console.error(err);
-      });
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            closeModal(modalStatus);
+            fetchAssetsFromDatabase();
+            showToast("Status Transitioned", `Status is now: ${newStatus}`, "success");
+          } else {
+            showToast("Status Update Failed", data.message || "Database update failed.", "danger");
+          }
+        })
+        .catch(err => {
+          showToast("Server Connection Error", "Check XAMPP services.", "danger");
+          console.error(err);
+        });
     });
 
     // Trigger Delete Confirmation Modal
@@ -675,34 +746,34 @@ document.addEventListener('DOMContentLoaded', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ Station_Number: selectedStation })
       })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          const deleted = selectedStation;
-          selectedStation = null;
-          closeModal(modalDelete);
-          fetchAssetsFromDatabase();
-          showToast("Asset Purged", `Station ${deleted} deleted from database.`, "danger");
-        } else {
-          showToast("Deletion Failed", data.message || "Database execution failed.", "danger");
-        }
-      })
-      .catch(err => {
-        showToast("Server Connection Error", "Check XAMPP services.", "danger");
-        console.error(err);
-      });
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            const deleted = selectedStation;
+            selectedStation = null;
+            closeModal(modalDelete);
+            fetchAssetsFromDatabase();
+            showToast("Asset Purged", `Station ${deleted} deleted from database.`, "danger");
+          } else {
+            showToast("Deletion Failed", data.message || "Database execution failed.", "danger");
+          }
+        })
+        .catch(err => {
+          showToast("Server Connection Error", "Check XAMPP services.", "danger");
+          console.error(err);
+        });
     });
 
 
     /* ========================================================
        5. FOOTER CONTROL ACTIONS (REFRESH, CSV EXPORT, LOGOUT)
        ======================================================== */
-    
+
     // Refresh / reload data from the database
     btnRefresh.addEventListener('click', () => {
       const icon = document.getElementById('refresh-icon');
       icon.classList.add('rotating');
-      
+
       // Clear selections and filters on refresh
       selectedStation = null;
       searchQuery = '';
@@ -712,27 +783,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Fetch the latest data from the database without resetting/wiping it
       fetch('api.php?action=fetch')
-      .then(res => {
-        if (!res.ok) throw new Error("Unauthorized or server connection failure");
-        return res.json();
-      })
-      .then(res => {
-        setTimeout(() => {
+        .then(res => {
+          if (!res.ok) throw new Error("Unauthorized or server connection failure");
+          return res.json();
+        })
+        .then(res => {
+          setTimeout(() => {
+            icon.classList.remove('rotating');
+             if (res.success) {
+               assetsList = res.data || [];
+               populateProgramDropdown();
+               renderTable();
+               showToast("Data Refreshed", "Asset records loaded from database.", "info");
+            } else {
+              showToast("Fetch Error", res.message || "Failed to fetch assets.", "danger");
+            }
+          }, 600);
+        })
+        .catch(err => {
           icon.classList.remove('rotating');
-          if (res.success) {
-            assetsList = res.data || [];
-            renderTable();
-            showToast("Data Refreshed", "Asset records loaded from database.", "info");
-          } else {
-            showToast("Fetch Error", res.message || "Failed to fetch assets.", "danger");
-          }
-        }, 600);
-      })
-      .catch(err => {
-        icon.classList.remove('rotating');
-        showToast("Server Connection Error", "Check XAMPP services.", "danger");
-        console.error(err);
-      });
+          showToast("Server Connection Error", "Check XAMPP services.", "danger");
+          console.error(err);
+        });
     });
 
     // Export CSV from active table array
@@ -795,11 +867,11 @@ document.addEventListener('DOMContentLoaded', () => {
       link.setAttribute("href", url);
       link.setAttribute("download", "it_wall_to_wall_monitoring_export.csv");
       document.body.appendChild(link);
-      
+
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      
+
       showToast("CSV Compiled", "Download for 'it_wall_to_wall_monitoring_export.csv' has started.", "success");
     });
 
@@ -807,22 +879,22 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnLogout) {
       btnLogout.addEventListener('click', () => {
         fetch('api.php?action=logout', { method: 'POST' })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            sessionStorage.clear();
-            showToast("Session Terminated", "Redirecting to login portal...", "info");
-            setTimeout(() => {
-              window.location.href = 'index.php';
-            }, 600);
-          } else {
-            showToast("Logout failed", "Session clear error.", "danger");
-          }
-        })
-        .catch(err => {
-          window.location.href = 'index.php'; // fallback redirect
-          console.error(err);
-        });
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              sessionStorage.clear();
+              showToast("Session Terminated", "Redirecting to login portal...", "info");
+              setTimeout(() => {
+                window.location.href = 'index.php';
+              }, 600);
+            } else {
+              showToast("Logout failed", "Session clear error.", "danger");
+            }
+          })
+          .catch(err => {
+            window.location.href = 'index.php'; // fallback redirect
+            console.error(err);
+          });
       });
     }
 

@@ -80,7 +80,7 @@ if (isset($_SESSION['aether_session_token'])) {
       overflow: hidden;
     }
 
-    /* Concentric circles — Concentrix signature motif */
+    /* Concentric circles — Concentrix signature motif with animated wave ripple */
     .circles-decor {
       position: absolute;
       top: 50%;
@@ -97,13 +97,35 @@ if (isset($_SESSION['aether_session_token'])) {
       left: 50%;
       transform: translate(-50%, -50%);
       border-radius: 50%;
+      animation: circle-pulse-wave 4s cubic-bezier(0.25, 0.8, 0.25, 1) infinite;
+      transform-origin: center;
+      will-change: transform, opacity;
     }
 
-    .circle-ring:nth-child(1) { width: 140px; height: 140px; border: 2px solid rgba(37,226,204,0.65); }
-    .circle-ring:nth-child(2) { width: 240px; height: 240px; border: 1.5px solid rgba(37,226,204,0.35); }
-    .circle-ring:nth-child(3) { width: 350px; height: 350px; border: 1.5px solid rgba(37,226,204,0.18); }
-    .circle-ring:nth-child(4) { width: 460px; height: 460px; border: 1px solid rgba(37,226,204,0.08); }
-    .circle-ring:nth-child(5) { width: 580px; height: 580px; border: 1px solid rgba(255,255,255,0.04); }
+    .circle-ring:nth-child(1) { width: 140px; height: 140px; border: 2.5px solid rgba(37,226,204,0.7); animation-delay: 0s; }
+    .circle-ring:nth-child(2) { width: 240px; height: 240px; border: 2px solid rgba(37,226,204,0.45); animation-delay: 0.4s; }
+    .circle-ring:nth-child(3) { width: 350px; height: 350px; border: 1.5px solid rgba(37,226,204,0.28); animation-delay: 0.8s; }
+    .circle-ring:nth-child(4) { width: 460px; height: 460px; border: 1.2px solid rgba(37,226,204,0.18); animation-delay: 1.2s; }
+    .circle-ring:nth-child(5) { width: 580px; height: 580px; border: 1px solid rgba(255,255,255,0.06); animation-delay: 1.6s; }
+
+    @keyframes circle-pulse-wave {
+      0% {
+        transform: translate(-50%, -50%) scale(0.92);
+        opacity: 0.3;
+        box-shadow: 0 0 0 rgba(37, 226, 204, 0);
+      }
+      50% {
+        transform: translate(-50%, -50%) scale(1.06);
+        opacity: 1;
+        border-color: rgba(37, 226, 204, 0.85);
+        box-shadow: 0 0 30px rgba(37, 226, 204, 0.2);
+      }
+      100% {
+        transform: translate(-50%, -50%) scale(0.92);
+        opacity: 0.3;
+        box-shadow: 0 0 0 rgba(37, 226, 204, 0);
+      }
+    }
 
     /* Pulsing turquoise center dot */
     .accent-dot {
@@ -116,12 +138,12 @@ if (isset($_SESSION['aether_session_token'])) {
       right: -124px;
       transform: translateY(-50%);
       box-shadow: 0 0 28px rgba(37,226,204,0.9);
-      animation: pulse-dot 3s ease-in-out infinite;
+      animation: pulse-dot 4s cubic-bezier(0.25, 0.8, 0.25, 1) infinite;
     }
 
     @keyframes pulse-dot {
-      0%, 100% { transform: translateY(-50%) scale(1);   box-shadow: 0 0 28px rgba(37,226,204,0.9); }
-      50%       { transform: translateY(-50%) scale(1.5); box-shadow: 0 0 55px rgba(37,226,204,1); }
+      0%, 100% { transform: translateY(-50%) scale(1);   box-shadow: 0 0 28px rgba(37,226,204,0.9); opacity: 0.7; }
+      50%       { transform: translateY(-50%) scale(1.4); box-shadow: 0 0 55px rgba(37,226,204,1); opacity: 1; }
     }
 
     /* Top-right turquoise glow */

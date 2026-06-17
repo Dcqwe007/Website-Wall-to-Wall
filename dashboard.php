@@ -52,8 +52,8 @@ if (!isset($_SESSION['aether_session_token'])) {
       <!-- Search & Filters Panel -->
       <div class="filter-panel">
         <div class="search-box-wrapper">
-          <i data-lucide="search" style="width: 15px; height: 15px;"></i>
           <input type="text" placeholder="Search..." class="search-box-input" id="search-input">
+          <i data-lucide="search" style="width: 15px; height: 15px;"></i>
         </div>
         <div class="select-wrapper">
           <span>Program:</span>

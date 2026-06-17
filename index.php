@@ -79,7 +79,7 @@ if (isset($_SESSION['aether_session_token'])) {
       overflow: hidden;
     }
 
-    /* Concentric circles — Concentrix signature motif */
+    /* Concentric circles — Concentrix signature motif with animated wave ripple */
     .circles-decor {
       position: absolute;
       top: 50%;
@@ -96,13 +96,35 @@ if (isset($_SESSION['aether_session_token'])) {
       left: 50%;
       transform: translate(-50%, -50%);
       border-radius: 50%;
+      animation: circle-pulse-wave 4s cubic-bezier(0.25, 0.8, 0.25, 1) infinite;
+      transform-origin: center;
+      will-change: transform, opacity;
     }
 
-    .circle-ring:nth-child(1) { width: 140px; height: 140px; border: 2px solid rgba(37,226,204,0.65); }
-    .circle-ring:nth-child(2) { width: 240px; height: 240px; border: 1.5px solid rgba(37,226,204,0.35); }
-    .circle-ring:nth-child(3) { width: 350px; height: 350px; border: 1.5px solid rgba(37,226,204,0.18); }
-    .circle-ring:nth-child(4) { width: 460px; height: 460px; border: 1px solid rgba(37,226,204,0.08); }
-    .circle-ring:nth-child(5) { width: 580px; height: 580px; border: 1px solid rgba(255,255,255,0.04); }
+    .circle-ring:nth-child(1) { width: 140px; height: 140px; border: 2.5px solid rgba(37,226,204,0.7); animation-delay: 0s; }
+    .circle-ring:nth-child(2) { width: 240px; height: 240px; border: 2px solid rgba(37,226,204,0.45); animation-delay: 0.4s; }
+    .circle-ring:nth-child(3) { width: 350px; height: 350px; border: 1.5px solid rgba(37,226,204,0.28); animation-delay: 0.8s; }
+    .circle-ring:nth-child(4) { width: 460px; height: 460px; border: 1.2px solid rgba(37,226,204,0.18); animation-delay: 1.2s; }
+    .circle-ring:nth-child(5) { width: 580px; height: 580px; border: 1px solid rgba(255,255,255,0.06); animation-delay: 1.6s; }
+
+    @keyframes circle-pulse-wave {
+      0% {
+        transform: translate(-50%, -50%) scale(0.92);
+        opacity: 0.3;
+        box-shadow: 0 0 0 rgba(37, 226, 204, 0);
+      }
+      50% {
+        transform: translate(-50%, -50%) scale(1.06);
+        opacity: 1;
+        border-color: rgba(37, 226, 204, 0.85);
+        box-shadow: 0 0 30px rgba(37, 226, 204, 0.2);
+      }
+      100% {
+        transform: translate(-50%, -50%) scale(0.92);
+        opacity: 0.3;
+        box-shadow: 0 0 0 rgba(37, 226, 204, 0);
+      }
+    }
 
     /* Pulsing turquoise center dot */
     .accent-dot {
@@ -115,12 +137,12 @@ if (isset($_SESSION['aether_session_token'])) {
       right: -124px;
       transform: translateY(-50%);
       box-shadow: 0 0 28px rgba(37,226,204,0.9);
-      animation: pulse-dot 3s ease-in-out infinite;
+      animation: pulse-dot 4s cubic-bezier(0.25, 0.8, 0.25, 1) infinite;
     }
 
     @keyframes pulse-dot {
-      0%, 100% { transform: translateY(-50%) scale(1);   box-shadow: 0 0 28px rgba(37,226,204,0.9); }
-      50%       { transform: translateY(-50%) scale(1.5); box-shadow: 0 0 55px rgba(37,226,204,1); }
+      0%, 100% { transform: translateY(-50%) scale(1);   box-shadow: 0 0 28px rgba(37,226,204,0.9); opacity: 0.7; }
+      50%       { transform: translateY(-50%) scale(1.4); box-shadow: 0 0 55px rgba(37,226,204,1); opacity: 1; }
     }
 
     /* Top-right turquoise glow */
@@ -526,6 +548,172 @@ if (isset($_SESSION['aether_session_token'])) {
       .left-panel { display: none; }
       .right-panel { width: 100%; padding: 40px 28px; }
     }
+
+    /* =============================================
+       SIGN-IN LOADING OVERLAY
+       ============================================= */
+    .login-loader-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 37, 53, 0.88); /* Dark semi-transparent background */
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .login-loader-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .loader-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      width: 100%;
+      max-width: 420px;
+      padding: 40px;
+      transform: scale(0.9);
+      transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .login-loader-overlay.active .loader-content {
+      transform: scale(1);
+    }
+
+    /* Logo Container with double spinning rings & pulsing glow */
+    .loader-logo-container {
+      position: relative;
+      width: 130px;
+      height: 130px;
+      margin-bottom: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .loader-logo-img {
+      width: 80px;
+      height: 80px;
+      object-fit: contain;
+      border-radius: 50%;
+      z-index: 5;
+      box-shadow: 0 0 20px rgba(37, 226, 204, 0.3);
+      animation: logo-pulse-animation 2s ease-in-out infinite;
+    }
+
+    /* Outer spinning ring (Turquoise) */
+    .loader-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 3px solid transparent;
+    }
+
+    .loader-ring-outer {
+      inset: 0;
+      border-top-color: var(--cnx-teal);
+      border-bottom-color: var(--cnx-teal);
+      animation: spin-clockwise 2s linear infinite;
+    }
+
+    /* Inner spinning ring (White / Light Teal) */
+    .loader-ring-inner {
+      inset: 12px;
+      border-left-color: rgba(255, 255, 255, 0.8);
+      border-right-color: rgba(255, 255, 255, 0.8);
+      animation: spin-counter-clockwise 1.5s linear infinite;
+    }
+
+    /* Glow backdrop behind the logo */
+    .loader-logo-pulse {
+      position: absolute;
+      inset: 15px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(37, 226, 204, 0.4) 0%, transparent 70%);
+      z-index: 1;
+      animation: pulse-glow-animation 2s ease-in-out infinite;
+    }
+
+    /* Text & Status Styles */
+    .loader-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #FFFFFF;
+      margin-bottom: 8px;
+      letter-spacing: -0.2px;
+    }
+
+    .loader-status {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--cnx-teal);
+      margin-bottom: 24px;
+      min-height: 20px;
+      letter-spacing: 0.1px;
+      text-shadow: 0 0 10px rgba(37, 226, 204, 0.3);
+    }
+
+    /* Progress bar layout */
+    .loader-progress-wrap {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .loader-progress-track {
+      flex: 1;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .loader-progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--cnx-teal) 0%, #00EAFF 100%);
+      border-radius: 10px;
+      transition: width 0.05s linear;
+      box-shadow: 0 0 10px rgba(37, 226, 204, 0.5);
+    }
+
+    .loader-progress-pct {
+      font-size: 13px;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.85);
+      min-width: 36px;
+      text-align: right;
+    }
+
+    /* Keyframes */
+    @keyframes spin-clockwise {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes spin-counter-clockwise {
+      0% { transform: rotate(360deg); }
+      100% { transform: rotate(0deg); }
+    }
+
+    @keyframes logo-pulse-animation {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    @keyframes pulse-glow-animation {
+      0%, 100% { transform: scale(1); opacity: 0.3; }
+      50% { transform: scale(1.3); opacity: 0.7; }
+    }
   </style>
 </head>
 <body>
@@ -653,7 +841,6 @@ if (isset($_SESSION['aether_session_token'])) {
             <input type="checkbox" id="remember-me">
             <span>Remember me</span>
           </label>
-          <a href="#" class="forgot-link" id="forgot-password-link">Forgot password?</a>
         </div>
 
         <button type="submit" class="btn-primary" id="btn-login-submit">
@@ -673,6 +860,33 @@ if (isset($_SESSION['aether_session_token'])) {
         Secure login &nbsp;·&nbsp; Privacy Policy &nbsp;·&nbsp; Help
       </div>
 
+    </div>
+  </div>
+
+  <!-- =============================================
+       SIGN-IN LOADING OVERLAY
+       ============================================= -->
+  <div class="login-loader-overlay" id="login-loader-overlay">
+    <div class="loader-content">
+      <!-- Pulsing/Glowing Brand Logo -->
+      <div class="loader-logo-container">
+        <img src="logo.png" alt="Loading Logo" class="loader-logo-img">
+        <div class="loader-logo-pulse"></div>
+        <div class="loader-ring loader-ring-outer"></div>
+        <div class="loader-ring loader-ring-inner"></div>
+      </div>
+      
+      <!-- System Title and Dynamic Status Message -->
+      <h3 class="loader-title">Concentrix UP 2 IT Operations</h3>
+      <div class="loader-status" id="loader-status">Verifying credentials...</div>
+      
+      <!-- Progress Bar and Percentage Counter -->
+      <div class="loader-progress-wrap">
+        <div class="loader-progress-track">
+          <div class="loader-progress-bar" id="loader-progress-bar"></div>
+        </div>
+        <div class="loader-progress-pct" id="loader-progress-pct">0%</div>
+      </div>
     </div>
   </div>
 

@@ -3,22 +3,26 @@
 :root {
   /* Color Palette - Exactly Matching the Screenshot */
   --bg-primary: #FFFFFF;
-  --bg-header-footer: #003B5C; /* Deep Teal Blue */
-  --bg-th: #004B6E;            /* Slightly lighter blue for headers */
+  --bg-header-footer: #003B5C;
+  /* Deep Teal Blue */
+  --bg-th: #004B6E;
+  /* Slightly lighter blue for headers */
   --bg-body: #FFFFFF;
-  
-  --border-color: #D2D6DE;     /* Standard thin table grid lines */
+
+  --border-color: #D2D6DE;
+  /* Standard thin table grid lines */
   --border-focus: #007ACC;
-  
-  --color-primary: #005A9E;    /* Windows selection blue */
+
+  --color-primary: #005A9E;
+  /* Windows selection blue */
   --color-success: #28A745;
   --color-danger: #DC3545;
   --color-warning: #FFC107;
-  
+
   --color-text-primary: #000000;
   --color-text-secondary: #333333;
   --color-text-muted: #777777;
-  
+
   --font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
   --transition-smooth: all 0.12s ease-in-out;
 }
@@ -32,7 +36,8 @@
   -webkit-font-smoothing: antialiased;
 }
 
-html, body {
+html,
+body {
   background-color: var(--bg-body);
   color: var(--color-text-secondary);
   height: 100vh;
@@ -51,13 +56,16 @@ html, body {
   width: 12px;
   height: 12px;
 }
+
 ::-webkit-scrollbar-track {
   background: #F1F1F1;
 }
+
 ::-webkit-scrollbar-thumb {
   background: #C1C1C1;
   border: 2px solid #F1F1F1;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: #A8A8A8;
 }
@@ -231,7 +239,9 @@ html, body {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .divider {
@@ -250,8 +260,13 @@ html, body {
   border-bottom: 1px solid var(--border-color);
 }
 
-.divider:not(:empty)::before { margin-right: .5em; }
-.divider:not(:empty)::after { margin-left: .5em; }
+.divider:not(:empty)::before {
+  margin-right: .5em;
+}
+
+.divider:not(:empty)::after {
+  margin-left: .5em;
+}
 
 .social-login-grid {
   display: grid;
@@ -346,7 +361,8 @@ html, body {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #00A699; /* Teal circular icon */
+  background: #00A699;
+  /* Teal circular icon */
   color: white;
   display: flex;
   align-items: center;
@@ -422,7 +438,7 @@ html, body {
 .filter-panel {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
   font-size: 13px;
 }
 
@@ -434,42 +450,77 @@ html, body {
 
 .search-box-wrapper i {
   position: absolute;
-  left: 10px;
-  color: #8C8C8C;
+  left: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  pointer-events: none;
+  transition: color 0.2s ease;
+  z-index: 2;
+  display: flex;
+  align-items: center;
 }
 
 .search-box-input {
-  width: 180px;
-  padding: 6px 10px 6px 30px;
-  background: #FFFFFF;
-  border: 1px solid #CCCCCC;
-  border-radius: 3px;
-  color: #000000;
+  width: 190px;
+  padding: 8px 16px 8px 38px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  border-radius: 30px;
+  color: #FFFFFF;
   font-size: 13px;
   outline: none;
-  transition: var(--transition-smooth);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.search-box-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .search-box-input:focus {
-  border-color: var(--border-focus);
+  background: rgba(255, 255, 255, 0.15);
+  border-color: #25E2CC; /* Concentrix Turquoise */
+  box-shadow: 0 0 12px rgba(37, 226, 204, 0.3);
+  width: 240px;
+}
+
+.search-box-input:focus + i {
+  color: #25E2CC; /* Concentrix Turquoise */
 }
 
 .select-wrapper {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: #FFFFFF;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 600;
 }
 
 .select-custom {
-  padding: 5px 8px;
-  background: #FFFFFF;
-  border: 1px solid #CCCCCC;
-  border-radius: 3px;
-  color: #000000;
+  padding: 8px 32px 8px 16px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  border-radius: 30px;
+  color: #FFFFFF;
   font-size: 13px;
   outline: none;
   cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  transition: all 0.2s ease;
+}
+
+.select-custom:focus, .select-custom:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: #25E2CC; /* Concentrix Turquoise */
+  box-shadow: 0 0 10px rgba(37, 226, 204, 0.25);
+}
+
+.select-custom option {
+  background-color: #003D5B; /* Match Concentrix Navy header */
+  color: #FFFFFF;
 }
 
 
@@ -519,10 +570,12 @@ html, body {
   font-size: 9px;
   color: rgba(255, 255, 255, 0.6);
 }
+
 th.sorted-asc .sort-indicator::after {
   content: ' ▲';
   color: #22D3EE;
 }
+
 th.sorted-desc .sort-indicator::after {
   content: ' ▼';
   color: #22D3EE;
@@ -531,7 +584,8 @@ th.sorted-desc .sort-indicator::after {
 /* Proper Solid Grid Borders for DataGridView */
 .table-custom td {
   padding: 8px 12px;
-  border: 1px solid #D2D6DE; /* Complete light gray border on all sides */
+  border: 1px solid #D2D6DE;
+  /* Complete light gray border on all sides */
   color: #000000;
   vertical-align: middle;
 }
@@ -803,9 +857,17 @@ th.sorted-desc .sort-indicator::after {
   transition: var(--transition-smooth);
 }
 
-.toast.success { border-left-color: var(--color-success); }
-.toast.info { border-left-color: var(--color-primary); }
-.toast.danger { border-left-color: var(--color-danger); }
+.toast.success {
+  border-left-color: var(--color-success);
+}
+
+.toast.info {
+  border-left-color: var(--color-primary);
+}
+
+.toast.danger {
+  border-left-color: var(--color-danger);
+}
 
 .toast-content {
   flex-grow: 1;
@@ -836,8 +898,15 @@ th.sorted-desc .sort-indicator::after {
 }
 
 @keyframes toast-in {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .toast-out {
