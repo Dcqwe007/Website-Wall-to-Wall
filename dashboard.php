@@ -55,20 +55,77 @@ if (!isset($_SESSION['aether_session_token'])) {
           <input type="text" placeholder="Search..." class="search-box-input" id="search-input">
           <i data-lucide="search" style="width: 15px; height: 15px;"></i>
         </div>
-        <div class="select-wrapper">
-          <span>Program:</span>
-          <select class="select-custom" id="select-program">
-            <option value="All">All</option>
-            <option value="Macys">Macys</option>
-            <option value="Elevance">Elevance</option>
-            <option value="Oscar">Oscar</option>
-            <option value="UHG">UHG</option>
-            <option value="Highmark">Highmark</option>
-            <option value="Xerox">Xerox</option>
+        <button class="btn-toggle-filters" id="btn-toggle-filters">
+          <i data-lucide="sliders" style="width: 14px; height: 14px;"></i>
+          <span>Filters</span>
+          <span class="active-filter-badge" id="active-filter-count" style="display: none;">0</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Collapsible Filter Drawer -->
+    <div class="filter-drawer" id="filter-drawer">
+      <div class="filter-drawer-header">
+        <span class="filter-drawer-title">
+          <i data-lucide="filter" style="width: 16px; height: 16px; color: var(--bg-header-footer);"></i>
+          Refine Assets Workspace
+        </span>
+        <button type="button" class="btn-clear-filters" id="btn-clear-filters">
+          <i data-lucide="filter-x" style="width: 14px; height: 14px;"></i>
+          Clear All Filters
+        </button>
+      </div>
+      <div class="filter-grid">
+        <div class="filter-group">
+          <label class="filter-label">Program</label>
+          <select class="filter-select" id="select-program">
+            <option value="All">All Programs</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">CPU Brand</label>
+          <select class="filter-select" id="select-cpu">
+            <option value="All">All CPUs</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Monitor Brand</label>
+          <select class="filter-select" id="select-monitor">
+            <option value="All">All Monitors</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">CPU Serial</label>
+          <select class="filter-select" id="select-serial">
+            <option value="All">All Serials</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Located Floor</label>
+          <select class="filter-select" id="select-floor">
+            <option value="All">All Floors</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">CPU Model</label>
+          <select class="filter-select" id="select-model">
+            <option value="All">All Models</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Site Node</label>
+          <select class="filter-select" id="select-site">
+            <option value="All">All Sites</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Current Status</label>
+          <select class="filter-select" id="select-status">
+            <option value="All">All Statuses</option>
           </select>
         </div>
       </div>
-    </header>
+    </div>
 
     <!-- Main Table Workspace -->
     <main class="table-workspace">

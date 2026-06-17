@@ -305,13 +305,21 @@ document.addEventListener('DOMContentLoaded', () => {
     let sortColumn = 'Station_Number';
     let sortOrder = 'asc';
     let searchQuery = '';
+
+    // Multi-faceted Filter States
     let selectedProgram = 'All';
+    let selectedCpu = 'All';
+    let selectedMonitor = 'All';
+    let selectedSerial = 'All';
+    let selectedFloor = 'All';
+    let selectedModel = 'All';
+    let selectedSite = 'All';
+    let selectedStatus = 'All';
 
     // DOM bindings
     const tableBody = document.getElementById('assets-table-body');
     const emptyMessage = document.getElementById('table-empty-message');
     const searchInput = document.getElementById('search-input');
-    const programSelect = document.getElementById('select-program');
     const statsText = document.getElementById('footer-stats-text');
     const btnDelete = document.getElementById('btn-delete');
     const btnEdit = document.getElementById('btn-edit');
@@ -319,6 +327,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnRefresh = document.getElementById('btn-refresh');
     const btnExportCsv = document.getElementById('btn-export-csv');
     const btnLogout = document.getElementById('btn-logout');
+
+    // Filter Panel and Drawer elements
+    const btnToggleFilters = document.getElementById('btn-toggle-filters');
+    const filterDrawer = document.getElementById('filter-drawer');
+    const btnClearFilters = document.getElementById('btn-clear-filters');
+    const activeFilterCount = document.getElementById('active-filter-count');
+
+    // 8 Select Dropdowns
+    const selectProgram = document.getElementById('select-program');
+    const selectCpu = document.getElementById('select-cpu');
+    const selectMonitor = document.getElementById('select-monitor');
+    const selectSerial = document.getElementById('select-serial');
+    const selectFloor = document.getElementById('select-floor');
+    const selectModel = document.getElementById('select-model');
+    const selectSite = document.getElementById('select-site');
+    const selectStatus = document.getElementById('select-status');
 
     // Toggle CRUD actions based on selection
     function updateActionButtonStates() {
@@ -328,31 +352,94 @@ document.addEventListener('DOMContentLoaded', () => {
       btnUpdateStatus.disabled = !isSelected;
     }
 
-    // Rebuild the Program drop-down based on active database records dynamically
-    function populateProgramDropdown() {
-      if (!programSelect) return;
-
-      const previousSelection = programSelect.value || 'All';
-
-      // Get unique sorted list of programs from the active database records
-      const programs = [...new Set(assetsList.map(a => a.Program).filter(p => p && p.trim() !== ''))];
-      programs.sort();
-
-      programSelect.innerHTML = '<option value="All">All Programs</option>';
-      programs.forEach(prog => {
-        const opt = document.createElement('option');
-        opt.value = prog;
-        opt.textContent = prog;
-        programSelect.appendChild(opt);
+    // Toggle Filters Drawer open/close
+    if (btnToggleFilters && filterDrawer) {
+      btnToggleFilters.addEventListener('click', (e) => {
+        e.stopPropagation();
+        filterDrawer.classList.toggle('open');
       });
+      // Prevent closing when clicking inside drawer
+      filterDrawer.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+    }
 
-      if (programs.includes(previousSelection)) {
-        programSelect.value = previousSelection;
-        selectedProgram = previousSelection;
-      } else {
-        programSelect.value = 'All';
-        selectedProgram = 'All';
+    // Dynamic Filter Badge Count updater
+    function updateActiveFilterBadge() {
+      let count = 0;
+      if (selectedProgram !== 'All') count++;
+      if (selectedCpu !== 'All') count++;
+      if (selectedMonitor !== 'All') count++;
+      if (selectedSerial !== 'All') count++;
+      if (selectedFloor !== 'All') count++;
+      if (selectedModel !== 'All') count++;
+      if (selectedSite !== 'All') count++;
+      if (selectedStatus !== 'All') count++;
+
+      if (activeFilterCount) {
+        if (count > 0) {
+          activeFilterCount.textContent = count;
+          activeFilterCount.style.display = 'inline-flex';
+        } else {
+          activeFilterCount.style.display = 'none';
+        }
       }
+    }
+
+    // Rebuild all filter dropdowns based on active database records dynamically
+    function populateFilterDropdowns() {
+      function populateDropdown(selectEl, keyOrFn, defaultLabel, prevVal) {
+        if (!selectEl) return 'All';
+
+        let values = [];
+        if (typeof keyOrFn === 'function') {
+          values = keyOrFn(assetsList);
+        } else {
+          values = [...new Set(assetsList.map(a => a[keyOrFn]).filter(v => v !== null && v !== undefined && v.toString().trim() !== ''))];
+        }
+
+        // Sort unique values
+        values.sort((a, b) => a.toString().localeCompare(b.toString(), undefined, { numeric: true, sensitivity: 'base' }));
+
+        selectEl.innerHTML = `<option value="All">${defaultLabel}</option>`;
+        values.forEach(val => {
+          const opt = document.createElement('option');
+          opt.value = val;
+          opt.textContent = val;
+          selectEl.appendChild(opt);
+        });
+
+        if (values.includes(prevVal)) {
+          selectEl.value = prevVal;
+          return prevVal;
+        } else {
+          selectEl.value = 'All';
+          return 'All';
+        }
+      }
+
+      // Populate each of the 8 dropdowns dynamically
+      selectedProgram = populateDropdown(selectProgram, 'Program', 'All Programs', selectedProgram);
+      selectedCpu = populateDropdown(selectCpu, 'CPU_Brand', 'All CPUs', selectedCpu);
+      
+      // Monitor brand is aggregated across Monitor 1, 2, and 3
+      selectedMonitor = populateDropdown(selectMonitor, (list) => {
+        const brands = [];
+        list.forEach(a => {
+          if (a.Monitor1_Brand && a.Monitor1_Brand.trim() !== '') brands.push(a.Monitor1_Brand.trim());
+          if (a.Monitor2_Brand && a.Monitor2_Brand.trim() !== '') brands.push(a.Monitor2_Brand.trim());
+          if (a.Monitor3_Brand && a.Monitor3_Brand.trim() !== '') brands.push(a.Monitor3_Brand.trim());
+        });
+        return [...new Set(brands)];
+      }, 'All Monitors', selectedMonitor);
+
+      selectedSerial = populateDropdown(selectSerial, 'CPU_Serial', 'All Serials', selectedSerial);
+      selectedFloor = populateDropdown(selectFloor, 'Asset_located_floor', 'All Floors', selectedFloor);
+      selectedModel = populateDropdown(selectModel, 'CPU_Model', 'All Models', selectedModel);
+      selectedSite = populateDropdown(selectSite, 'Site', 'All Sites', selectedSite);
+      selectedStatus = populateDropdown(selectStatus, 'Current_Status', 'All Statuses', selectedStatus);
+
+      updateActiveFilterBadge();
     }
 
     // Load assets from database API
@@ -365,7 +452,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(res => {
           if (res.success) {
             assetsList = res.data || [];
-            populateProgramDropdown();
+            populateFilterDropdowns();
             renderTable();
           } else {
             showToast("Fetch Error", res.message || "Failed to fetch assets.", "danger");
@@ -383,11 +470,23 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderTable() {
       tableBody.innerHTML = '';
 
-      // 1. Client side filters (Search input & Program dropdown)
+      // 1. Client side filters (Search input & 8 dynamic dropdown filters)
       let filtered = assetsList.filter(asset => {
-        if (selectedProgram !== 'All' && asset.Program !== selectedProgram) {
+        if (selectedProgram !== 'All' && asset.Program !== selectedProgram) return false;
+        if (selectedCpu !== 'All' && asset.CPU_Brand !== selectedCpu) return false;
+        
+        if (selectedMonitor !== 'All' && 
+            asset.Monitor1_Brand !== selectedMonitor && 
+            asset.Monitor2_Brand !== selectedMonitor && 
+            asset.Monitor3_Brand !== selectedMonitor) {
           return false;
         }
+        
+        if (selectedSerial !== 'All' && asset.CPU_Serial !== selectedSerial) return false;
+        if (selectedFloor !== 'All' && asset.Asset_located_floor !== selectedFloor) return false;
+        if (selectedModel !== 'All' && asset.CPU_Model !== selectedModel) return false;
+        if (selectedSite !== 'All' && asset.Site !== selectedSite) return false;
+        if (selectedStatus !== 'All' && asset.Current_Status !== selectedStatus) return false;
 
         if (searchQuery) {
           const matchParts = [
@@ -536,7 +635,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Search and category selectors
+    // Search input event binding
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
         searchQuery = e.target.value.trim().toLowerCase();
@@ -544,10 +643,52 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    if (programSelect) {
-      programSelect.addEventListener('change', (e) => {
-        selectedProgram = e.target.value;
+    // Bind change events to all 8 dropdown selects
+    const filterConfig = [
+      { element: selectProgram, stateSetter: val => { selectedProgram = val; } },
+      { element: selectCpu, stateSetter: val => { selectedCpu = val; } },
+      { element: selectMonitor, stateSetter: val => { selectedMonitor = val; } },
+      { element: selectSerial, stateSetter: val => { selectedSerial = val; } },
+      { element: selectFloor, stateSetter: val => { selectedFloor = val; } },
+      { element: selectModel, stateSetter: val => { selectedModel = val; } },
+      { element: selectSite, stateSetter: val => { selectedSite = val; } },
+      { element: selectStatus, stateSetter: val => { selectedStatus = val; } }
+    ];
+
+    filterConfig.forEach(cfg => {
+      if (cfg.element) {
+        cfg.element.addEventListener('change', (e) => {
+          cfg.stateSetter(e.target.value);
+          updateActiveFilterBadge();
+          renderTable();
+        });
+      }
+    });
+
+    // Clear all filters button event binding
+    if (btnClearFilters) {
+      btnClearFilters.addEventListener('click', () => {
+        selectedProgram = 'All';
+        selectedCpu = 'All';
+        selectedMonitor = 'All';
+        selectedSerial = 'All';
+        selectedFloor = 'All';
+        selectedModel = 'All';
+        selectedSite = 'All';
+        selectedStatus = 'All';
+
+        if (selectProgram) selectProgram.value = 'All';
+        if (selectCpu) selectCpu.value = 'All';
+        if (selectMonitor) selectMonitor.value = 'All';
+        if (selectSerial) selectSerial.value = 'All';
+        if (selectFloor) selectFloor.value = 'All';
+        if (selectModel) selectModel.value = 'All';
+        if (selectSite) selectSite.value = 'All';
+        if (selectStatus) selectStatus.value = 'All';
+
+        updateActiveFilterBadge();
         renderTable();
+        showToast("Filters Cleared", "Workspace filtering has been reset.", "info");
       });
     }
 
@@ -784,14 +925,31 @@ document.addEventListener('DOMContentLoaded', () => {
     // Refresh / reload data from the database
     btnRefresh.addEventListener('click', () => {
       const icon = document.getElementById('refresh-icon');
-      icon.classList.add('rotating');
+      if (icon) icon.classList.add('rotating');
 
-      // Clear selections and filters on refresh
+      // Clear selections and all filters on refresh
       selectedStation = null;
       searchQuery = '';
       selectedProgram = 'All';
+      selectedCpu = 'All';
+      selectedMonitor = 'All';
+      selectedSerial = 'All';
+      selectedFloor = 'All';
+      selectedModel = 'All';
+      selectedSite = 'All';
+      selectedStatus = 'All';
+
       if (searchInput) searchInput.value = '';
-      if (programSelect) programSelect.value = 'All';
+      if (selectProgram) selectProgram.value = 'All';
+      if (selectCpu) selectCpu.value = 'All';
+      if (selectMonitor) selectMonitor.value = 'All';
+      if (selectSerial) selectSerial.value = 'All';
+      if (selectFloor) selectFloor.value = 'All';
+      if (selectModel) selectModel.value = 'All';
+      if (selectSite) selectSite.value = 'All';
+      if (selectStatus) selectStatus.value = 'All';
+
+      updateActiveFilterBadge();
 
       // Fetch the latest data from the database without resetting/wiping it
       fetch('api.php?action=fetch')
@@ -801,10 +959,10 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .then(res => {
           setTimeout(() => {
-            icon.classList.remove('rotating');
+            if (icon) icon.classList.remove('rotating');
             if (res.success) {
               assetsList = res.data || [];
-              populateProgramDropdown();
+              populateFilterDropdowns();
               renderTable();
               showToast("Data Refreshed", "Asset records loaded from database.", "info");
             } else {
