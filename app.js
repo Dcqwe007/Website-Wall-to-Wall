@@ -227,6 +227,14 @@ document.addEventListener('DOMContentLoaded', () => {
       errorAlert.style.display = 'none';
       successAlert.style.display = 'none';
 
+      // Enforce Concentrix SSO email format (fullname.surname@concentrix.com)
+      const emailRegex = /^[a-zA-Z0-9_-]+\.[a-zA-Z0-9._-]+@concentrix\.com$/i;
+      if (!emailRegex.test(emailInput)) {
+        errorMessage.textContent = "Please enter a valid Concentrix SSO email (format: fullname.surname@concentrix.com).";
+        errorAlert.style.display = 'flex';
+        return;
+      }
+
       // Client-side passwords match validation
       if (passwordInput !== confirmPasswordInput) {
         errorMessage.textContent = "Passwords do not match.";
@@ -323,13 +331,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Rebuild the Program drop-down based on active database records dynamically
     function populateProgramDropdown() {
       if (!programSelect) return;
-      
+
       const previousSelection = programSelect.value || 'All';
-      
+
       // Get unique sorted list of programs from the active database records
       const programs = [...new Set(assetsList.map(a => a.Program).filter(p => p && p.trim() !== ''))];
       programs.sort();
-      
+
       programSelect.innerHTML = '<option value="All">All Programs</option>';
       programs.forEach(prog => {
         const opt = document.createElement('option');
@@ -337,7 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
         opt.textContent = prog;
         programSelect.appendChild(opt);
       });
-      
+
       if (programs.includes(previousSelection)) {
         programSelect.value = previousSelection;
         selectedProgram = previousSelection;
@@ -490,7 +498,11 @@ document.addEventListener('DOMContentLoaded', () => {
       // Update counters
       const activeObj = assetsList.find(a => a.Station_Number == selectedStation);
       const selectedText = activeObj ? `Station ${activeObj.Station_Number}` : 'None';
-      statsText.innerHTML = `Total Assets: <strong>${assetsList.length}</strong> | Visible: <strong>${filtered.length}</strong> | Selected: <strong>${selectedText}</strong>`;
+      const countDeployed = assetsList.filter(a => a.Current_Status === 'Deployed').length;
+      const countOnsite = assetsList.filter(a => a.Current_Status === 'Onsite Deployed').length;
+      const countPulled = assetsList.filter(a => a.Current_Status === 'Pulled Out').length;
+
+      statsText.innerHTML = `Total Assets: <strong>${assetsList.length}</strong> | Deployed: <strong>${countDeployed}</strong> | Onsite Deployed: <strong>${countOnsite}</strong> | Pulled Out: <strong>${countPulled}</strong> | Visible: <strong>${filtered.length}</strong> | Selected: <strong>${selectedText}</strong>`;
 
       updateActionButtonStates();
     }
@@ -790,11 +802,11 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(res => {
           setTimeout(() => {
             icon.classList.remove('rotating');
-             if (res.success) {
-               assetsList = res.data || [];
-               populateProgramDropdown();
-               renderTable();
-               showToast("Data Refreshed", "Asset records loaded from database.", "info");
+            if (res.success) {
+              assetsList = res.data || [];
+              populateProgramDropdown();
+              renderTable();
+              showToast("Data Refreshed", "Asset records loaded from database.", "info");
             } else {
               showToast("Fetch Error", res.message || "Failed to fetch assets.", "danger");
             }

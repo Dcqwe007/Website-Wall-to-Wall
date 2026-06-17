@@ -641,11 +641,16 @@ if (isset($_SESSION['aether_session_token'])) {
               type="email"
               id="signup-email"
               class="input-field"
-              placeholder="e.g. jane@company.com"
+              placeholder="e.g. firstname.lastname@concentrix.com"
               required
               autocomplete="email"
+              pattern="[a-zA-Z0-9_-]+\.[a-zA-Z0-9._-]+@[cC][oO][nN][cC][eE][nN][tT][rR][iI][xX]\.[cC][oO][mM]"
+              title="Please enter your Concentrix SSO email in the format: fullname.surname@concentrix.com"
             >
           </div>
+          <span style="font-size: 11px; color: var(--cnx-gray-400); margin-top: 4px; display: block; font-weight: 500;">
+            Must be your Concentrix SSO account (e.g. firstname.lastname@concentrix.com).
+          </span>
         </div>
 
         <!-- Password -->
