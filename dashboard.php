@@ -16,6 +16,9 @@ if (!isset($_SESSION['aether_session_token'])) {
   
   <!-- CDN for Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- CDN for Charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -24,7 +27,14 @@ if (!isset($_SESSION['aether_session_token'])) {
   <div class="bg-glow bg-glow-2"></div>
   <div class="bg-glow bg-glow-3"></div>
 
-  <div class="dashboard-container">
+  <div class="portal-layout">
+    
+    <!-- Left Sidebar Navigation -->
+    <?php include 'sidebar.php'; ?>
+
+    <!-- Right Main Workspace Content Area -->
+    <div class="main-content-area">
+      <div class="dashboard-container">
     
     <!-- Top Header Navigation & Action Bar -->
     <header class="top-header">
@@ -48,12 +58,15 @@ if (!isset($_SESSION['aether_session_token'])) {
         <button class="btn-action" id="btn-edit" disabled>Edit</button>
         <button class="btn-action" id="btn-update-status" disabled>Update Status</button>
       </div>
+    </header>
 
-      <!-- Search & Filters Panel -->
+    <!-- Search & Filters Toolbar Panel -->
+    <div class="toolbar-search-filter">
+      <div class="toolbar-title">Workspace Inventory Records</div>
       <div class="filter-panel">
         <div class="search-box-wrapper">
           <input type="text" placeholder="Search..." class="search-box-input" id="search-input">
-          <i data-lucide="search" style="width: 15px; height: 15px;"></i>
+          <i data-lucide="search" class="search-icon" style="width: 15px; height: 15px;"></i>
         </div>
         <button class="btn-toggle-filters" id="btn-toggle-filters">
           <i data-lucide="sliders" style="width: 14px; height: 14px;"></i>
@@ -61,7 +74,7 @@ if (!isset($_SESSION['aether_session_token'])) {
           <span class="active-filter-badge" id="active-filter-count" style="display: none;">0</span>
         </button>
       </div>
-    </header>
+    </div>
 
     <!-- Collapsible Filter Drawer -->
     <div class="filter-drawer" id="filter-drawer">
@@ -180,11 +193,12 @@ if (!isset($_SESSION['aether_session_token'])) {
 
       <div class="footer-right">
         <button class="btn-footer" id="btn-export-csv">Export CSV</button>
-        <button class="btn-footer btn-logout-footer" id="btn-logout">Logout</button>
       </div>
     </footer>
 
-  </div>
+      </div> <!-- End dashboard-container -->
+    </div> <!-- End main-content-area -->
+  </div> <!-- End portal-layout -->
 
   <!-- ==========================================
      MODALS POPUPS

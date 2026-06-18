@@ -135,14 +135,14 @@ document.addEventListener('DOMContentLoaded', () => {
                   requestAnimationFrame(animate);
                 } else {
                   setTimeout(() => {
-                    window.location.href = 'dashboard.php';
+                    window.location.href = 'home.php';
                   }, 150);
                 }
               }
               requestAnimationFrame(animate);
             } else {
               // Fallback redirect if elements are missing from the page
-              window.location.href = 'dashboard.php';
+              window.location.href = 'home.php';
             }
           } else {
             errorMessage.textContent = data.message || "Incorrect email/username or password.";
@@ -305,6 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let sortColumn = 'Station_Number';
     let sortOrder = 'asc';
     let searchQuery = '';
+    let programChart = null; // Chart.js instance for program distribution
 
     // Multi-faceted Filter States
     let selectedProgram = 'All';
@@ -421,7 +422,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Populate each of the 8 dropdowns dynamically
       selectedProgram = populateDropdown(selectProgram, 'Program', 'All Programs', selectedProgram);
       selectedCpu = populateDropdown(selectCpu, 'CPU_Brand', 'All CPUs', selectedCpu);
-      
+
       // Monitor brand is aggregated across Monitor 1, 2, and 3
       selectedMonitor = populateDropdown(selectMonitor, (list) => {
         const brands = [];
@@ -474,14 +475,14 @@ document.addEventListener('DOMContentLoaded', () => {
       let filtered = assetsList.filter(asset => {
         if (selectedProgram !== 'All' && asset.Program !== selectedProgram) return false;
         if (selectedCpu !== 'All' && asset.CPU_Brand !== selectedCpu) return false;
-        
-        if (selectedMonitor !== 'All' && 
-            asset.Monitor1_Brand !== selectedMonitor && 
-            asset.Monitor2_Brand !== selectedMonitor && 
-            asset.Monitor3_Brand !== selectedMonitor) {
+
+        if (selectedMonitor !== 'All' &&
+          asset.Monitor1_Brand !== selectedMonitor &&
+          asset.Monitor2_Brand !== selectedMonitor &&
+          asset.Monitor3_Brand !== selectedMonitor) {
           return false;
         }
-        
+
         if (selectedSerial !== 'All' && asset.CPU_Serial !== selectedSerial) return false;
         if (selectedFloor !== 'All' && asset.Asset_located_floor !== selectedFloor) return false;
         if (selectedModel !== 'All' && asset.CPU_Model !== selectedModel) return false;
@@ -1046,26 +1047,32 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Logout
+    const triggerLogout = () => {
+      fetch('api.php?action=logout', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            sessionStorage.clear();
+            showToast("Session Terminated", "Redirecting to login portal...", "info");
+            setTimeout(() => {
+              window.location.href = 'index.php';
+            }, 600);
+          } else {
+            showToast("Logout failed", "Session clear error.", "danger");
+          }
+        })
+        .catch(err => {
+          window.location.href = 'index.php'; // fallback redirect
+          console.error(err);
+        });
+    };
+
     if (btnLogout) {
-      btnLogout.addEventListener('click', () => {
-        fetch('api.php?action=logout', { method: 'POST' })
-          .then(res => res.json())
-          .then(data => {
-            if (data.success) {
-              sessionStorage.clear();
-              showToast("Session Terminated", "Redirecting to login portal...", "info");
-              setTimeout(() => {
-                window.location.href = 'index.php';
-              }, 600);
-            } else {
-              showToast("Logout failed", "Session clear error.", "danger");
-            }
-          })
-          .catch(err => {
-            window.location.href = 'index.php'; // fallback redirect
-            console.error(err);
-          });
-      });
+      btnLogout.addEventListener('click', triggerLogout);
+    }
+    const btnLogoutSidebar = document.getElementById('btn-logout-sidebar');
+    if (btnLogoutSidebar) {
+      btnLogoutSidebar.addEventListener('click', triggerLogout);
     }
 
     // Initial assets load on document ready

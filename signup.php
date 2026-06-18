@@ -1,7 +1,7 @@
 <?php
 session_start();
 if (isset($_SESSION['aether_session_token'])) {
-    header("Location: dashboard.php");
+    header("Location: home.php");
     exit;
 }
 ?>
