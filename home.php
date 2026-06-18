@@ -54,7 +54,7 @@ if (!isset($_SESSION['aether_session_token'])) {
         </div>
 
         <!-- KPI Summary Stats Cards Grid -->
-        <div class="kpi-grid">
+        <div class="kpi-grid" style="grid-template-columns: repeat(3, 1fr);">
           <div class="kpi-card-tile">
             <div class="kpi-tile-icon" style="background-color: rgba(0, 90, 158, 0.1); color: #005A9E;">
               <i data-lucide="monitor"></i>
@@ -62,16 +62,6 @@ if (!isset($_SESSION['aether_session_token'])) {
             <div class="kpi-tile-data">
               <span class="kpi-tile-label">Total cataloged assets</span>
               <strong class="kpi-tile-value" id="kpi-total-assets">0</strong>
-            </div>
-          </div>
-          
-          <div class="kpi-card-tile">
-            <div class="kpi-tile-icon" style="background-color: rgba(40, 167, 69, 0.1); color: #28A745;">
-              <i data-lucide="check-circle-2"></i>
-            </div>
-            <div class="kpi-tile-data">
-              <span class="kpi-tile-label">Deployed Stations</span>
-              <strong class="kpi-tile-value" id="kpi-deployed">0</strong>
             </div>
           </div>
 

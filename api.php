@@ -201,7 +201,7 @@ try {
                 'Program'             => trim($inputData['Program'] ?? ''),
                 'Asset_located_floor' => trim($inputData['Asset_located_floor'] ?? ''),
                 'Site'                => trim($inputData['Site'] ?? ''),
-                'Current_Status'      => trim($inputData['Current_Status'] ?? 'Deployed')
+                'Current_Status'      => trim($inputData['Current_Status'] ?? 'Onsite Deployed')
             ]);
 
             echo json_encode(['success' => true]);
@@ -269,7 +269,7 @@ try {
                 'Program'             => trim($inputData['Program'] ?? ''),
                 'Asset_located_floor' => trim($inputData['Asset_located_floor'] ?? ''),
                 'Site'                => trim($inputData['Site'] ?? ''),
-                'Current_Status'      => trim($inputData['Current_Status'] ?? 'Deployed'),
+                'Current_Status'      => trim($inputData['Current_Status'] ?? 'Onsite Deployed'),
                 'old_Station_Number'  => $oldStation
             ]);
 
@@ -287,7 +287,7 @@ try {
             }
 
             $station = intval($inputData['Station_Number'] ?? 0);
-            $status  = trim($inputData['Current_Status'] ?? 'Deployed');
+            $status  = trim($inputData['Current_Status'] ?? 'Onsite Deployed');
 
             $stmt = $db->prepare("UPDATE assets SET Current_Status = :status, Modified_Date = NOW() WHERE Station_Number = :station");
             $stmt->execute(['status' => $status, 'station' => $station]);
@@ -328,15 +328,15 @@ try {
 
             // Seed array
             $defaults = [
-                [101, 'ProDesk 600 G3', '3CQ7482Z7X', 'HP', 'EliteDisplay E232', '6CM7451FL8', 'HP', 'EliteDisplay E232', '6CM7451FL9', 'HP', 'EliteDisplay E232', '6CM7451FL0', 'HP', 'Macys', '3rd', 'UP2', 'Deployed', '2026-06-02 18:58:00', '2026-06-02 18:58:00'],
-                [102, 'EliteDesk 800 G4', '3CQ8120W2Y', 'HP', 'EliteDisplay E233', '6CM8190Y2B', 'HP', 'EliteDisplay E233', '6CM8190Y2C', 'HP', NULL, NULL, NULL, 'Macys', '4th', 'UP2', 'Deployed', '2026-06-02 18:58:00', '2026-06-02 18:58:00'],
+                [101, 'ProDesk 600 G3', '3CQ7482Z7X', 'HP', 'EliteDisplay E232', '6CM7451FL8', 'HP', 'EliteDisplay E232', '6CM7451FL9', 'HP', 'EliteDisplay E232', '6CM7451FL0', 'HP', 'Macys', '3rd', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', '2026-06-02 18:58:00'],
+                [102, 'EliteDesk 800 G4', '3CQ8120W2Y', 'HP', 'EliteDisplay E233', '6CM8190Y2B', 'HP', 'EliteDisplay E233', '6CM8190Y2C', 'HP', NULL, NULL, NULL, 'Macys', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', '2026-06-02 18:58:00'],
                 [103, 'OptiPlex 7050', 'CN07F10V3S', 'Dell', 'Dell P2417H', 'CN03V10W2R', 'Dell', 'Dell P2417H', 'CN03V10W2S', 'Dell', 'Dell P2417H', 'CN03V10W2T', 'Dell', 'Elevance', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
                 [104, 'ThinkCentre M720q', 'PC09X12Y', 'Lenovo', 'ThinkVision T23d', 'V10Y7812', 'Lenovo', 'ThinkVision T23d', 'V10Y7813', 'Lenovo', NULL, NULL, NULL, 'Oscar', '2nd', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
                 [105, 'ProDesk 600 G3', '3CQ7482Z8Y', 'HP', 'EliteDisplay E232', '6CM7451FM1', 'HP', 'EliteDisplay E232', '6CM7451FM2', 'HP', NULL, NULL, NULL, 'Elevance', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
                 [106, 'EliteDesk 800 G4', '3CQ8120W3Z', 'HP', 'EliteDisplay E233', '6CM8190Y3D', 'HP', 'EliteDisplay E233', '6CM8190Y3E', 'HP', NULL, NULL, NULL, 'UHG', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
                 [107, 'OptiPlex 7050', 'CN07F10V4T', 'Dell', 'Dell P2417H', 'CN03V10W3T', 'Dell', 'Dell P2417H', 'CN03V10W3U', 'Dell', NULL, NULL, NULL, 'Oscar', '2nd', 'UP2', 'Pulled Out', '2026-06-02 18:58:00', '2026-06-02 11:46:00'],
                 [108, 'ThinkCentre M720q', 'PC09X13Z', 'Lenovo', 'ThinkVision T23d', 'V10Y7814', 'Lenovo', 'ThinkVision T23d', 'V10Y7815', 'Lenovo', NULL, NULL, NULL, 'Oscar', '2nd', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
-                [109, 'ProDesk 600 G3', '3CQ7482Z9Z', 'HP', 'EliteDisplay E232', '6CM7451FM3', 'HP', 'EliteDisplay E232', '6CM7451FM4', 'HP', NULL, NULL, NULL, 'Highmark', 'Ground Floor', 'UP2', 'Deployed', '2026-06-02 18:58:00', '2026-06-02 16:01:00'],
+                [109, 'ProDesk 600 G3', '3CQ7482Z9Z', 'HP', 'EliteDisplay E232', '6CM7451FM3', 'HP', 'EliteDisplay E232', '6CM7451FM4', 'HP', NULL, NULL, NULL, 'Highmark', 'Ground Floor', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', '2026-06-02 16:01:00'],
                 [110, 'EliteDesk 800 G4', '3CQ8120W4A', 'HP', 'EliteDisplay E233', '6CM8190Y4F', 'HP', 'EliteDisplay E233', '6CM8190Y4G', 'HP', NULL, NULL, NULL, 'Highmark', 'Ground Floor', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL]
             ];
 

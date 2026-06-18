@@ -35,8 +35,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return res.json();
       })
       .then(res => {
-        if (res.success) {
           assetsList = res.data || [];
+          assetsList.forEach(a => {
+            if (a.Current_Status === 'Deployed') {
+              a.Current_Status = 'Onsite Deployed';
+            }
+          });
           renderProgramShareChart();
           renderStatusBreakdownChart();
           populateSummaryMatrix();
@@ -149,7 +153,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Group assets by status dynamically
     const statusCounts = {
-      'Deployed': 0,
       'Onsite Deployed': 0,
       'Pulled Out': 0
     };
@@ -157,8 +160,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const status = asset.Current_Status;
       if (statusCounts[status] !== undefined) {
         statusCounts[status]++;
-      } else {
-        statusCounts[status] = (statusCounts[status] || 0) + 1;
       }
     });
 
@@ -166,12 +167,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const chartData = Object.values(statusCounts);
 
     const barColors = [
-      'rgba(40, 167, 69, 0.85)',  // Deployed - Green
       'rgba(26, 115, 232, 0.85)', // Onsite Deployed - Blue
       'rgba(220, 53, 69, 0.85)'   // Pulled Out - Red
     ];
     const hoverColors = [
-      'rgba(40, 167, 69, 1)',
       'rgba(26, 115, 232, 1)',
       'rgba(220, 53, 69, 1)'
     ];

@@ -293,7 +293,6 @@ if (!isset($_SESSION['aether_session_token'])) {
           <div class="form-group">
             <label class="form-label">Current Status</label>
             <select class="modal-input-field" id="add-status">
-              <option value="Deployed">Deployed</option>
               <option value="Onsite Deployed">Onsite Deployed</option>
               <option value="Pulled Out">Pulled Out</option>
             </select>
@@ -397,7 +396,6 @@ if (!isset($_SESSION['aether_session_token'])) {
           <div class="form-group">
             <label class="form-label">Current Status</label>
             <select class="modal-input-field" id="edit-status">
-              <option value="Deployed">Deployed</option>
               <option value="Onsite Deployed">Onsite Deployed</option>
               <option value="Pulled Out">Pulled Out</option>
             </select>
@@ -427,7 +425,6 @@ if (!isset($_SESSION['aether_session_token'])) {
         <div class="form-group" style="margin-bottom: 20px;">
           <label class="form-label">Transition selected asset to:</label>
           <select class="modal-input-field" id="quick-status-select">
-            <option value="Deployed">Deployed</option>
             <option value="Onsite Deployed">Onsite Deployed</option>
             <option value="Pulled Out">Pulled Out</option>
           </select>

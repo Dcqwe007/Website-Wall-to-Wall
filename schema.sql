@@ -43,15 +43,15 @@ ON DUPLICATE KEY UPDATE `username`='admin';
 
 -- Insert default 22 asset monitoring rows
 INSERT INTO `assets` (`station_number`, `serial_number`, `model_of_asset`, `brand_of_asset`, `type_of_asset`, `program`, `asset_located_floor`, `site`, `current_status`, `created_date`, `modified_date`) VALUES
-(0, '0lu4htkq100216b', 'SAMSUNG S22E390H', 'Samsung', 'Monitor', 'Macys', '3rd', 'UP2', 'Deployed', '2026-06-02 18:58:00', '2026-06-02 18:58:00'),
-(1, '3cq40312cr', 'HP P201', 'HP', 'Monitor', 'Macys', '4th', 'UP2', 'Deployed', '2026-06-02 18:58:00', '2026-06-02 18:58:00'),
+(0, '0lu4htkq100216b', 'SAMSUNG S22E390H', 'Samsung', 'Monitor', 'Macys', '3rd', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', '2026-06-02 18:58:00'),
+(1, '3cq40312cr', 'HP P201', 'HP', 'Monitor', 'Macys', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', '2026-06-02 18:58:00'),
 (0, '3cq40312dv', 'HP P201', 'HP', 'Monitor', 'Elevance', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL),
 (0, '3cq4210v7v', 'HP P201', 'HP', 'Monitor', 'Oscar', '2nd', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL),
 (0, '3cq4210v8g', 'HP P201', 'HP', 'Monitor', 'Elevance', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL),
 (0, '3cq4210wh4', 'HP P201', 'HP', 'Monitor', 'UHG', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL),
 (0, '3cq4210whj', 'HP PRODISPLAY P201', 'HP', 'Monitor', 'Oscar', '2nd', 'UP2', 'Pulled Out', '2026-06-02 18:58:00', '2026-06-02 11:46:00'),
 (0, '3cq4210whl', 'HP PRODISPLAY P201', 'HP', 'Monitor', 'Oscar', '2nd', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL),
-(0, '3cq4210wj1', 'HP P201', 'HP', 'Monitor', 'Highmark', 'Ground Floor', 'UP2', 'Deployed', '2026-06-02 18:58:00', '2026-06-02 16:01:00'),
+(0, '3cq4210wj1', 'HP P201', 'HP', 'Monitor', 'Highmark', 'Ground Floor', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', '2026-06-02 16:01:00'),
 (0, '3cq4210wr4', 'HP P201', 'HP', 'Monitor', 'Highmark', 'Ground Floor', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL),
 (0, '3cq4210ws7', 'HP P201', 'HP', 'Monitor', 'Elevance', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL),
 (0, '6cm3413s1b', 'HP P201', 'HP', 'Monitor', 'UHG', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL),

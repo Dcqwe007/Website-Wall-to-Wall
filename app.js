@@ -453,6 +453,11 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(res => {
           if (res.success) {
             assetsList = res.data || [];
+            assetsList.forEach(a => {
+              if (a.Current_Status === 'Deployed') {
+                a.Current_Status = 'Onsite Deployed';
+              }
+            });
             populateFilterDropdowns();
             renderTable();
           } else {
@@ -554,8 +559,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           // Badge coloring
           let badgeClass = 'badge-other';
-          if (asset.Current_Status === 'Deployed') badgeClass = 'badge-deployed';
-          else if (asset.Current_Status === 'Onsite Deployed') badgeClass = 'badge-onsite';
+          if (asset.Current_Status === 'Onsite Deployed') badgeClass = 'badge-onsite';
           else if (asset.Current_Status === 'Pulled Out') badgeClass = 'badge-pulled';
 
           tr.innerHTML = `
@@ -598,11 +602,10 @@ document.addEventListener('DOMContentLoaded', () => {
       // Update counters
       const activeObj = assetsList.find(a => a.Station_Number == selectedStation);
       const selectedText = activeObj ? `Station ${activeObj.Station_Number}` : 'None';
-      const countDeployed = assetsList.filter(a => a.Current_Status === 'Deployed').length;
       const countOnsite = assetsList.filter(a => a.Current_Status === 'Onsite Deployed').length;
       const countPulled = assetsList.filter(a => a.Current_Status === 'Pulled Out').length;
 
-      statsText.innerHTML = `Total Assets: <strong>${assetsList.length}</strong> | Deployed: <strong>${countDeployed}</strong> | Onsite Deployed: <strong>${countOnsite}</strong> | Pulled Out: <strong>${countPulled}</strong> | Visible: <strong>${filtered.length}</strong> | Selected: <strong>${selectedText}</strong>`;
+      statsText.innerHTML = `Total Assets: <strong>${assetsList.length}</strong> | Onsite Deployed: <strong>${countOnsite}</strong> | Pulled Out: <strong>${countPulled}</strong> | Visible: <strong>${filtered.length}</strong> | Selected: <strong>${selectedText}</strong>`;
 
       updateActionButtonStates();
     }
@@ -963,6 +966,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (icon) icon.classList.remove('rotating');
             if (res.success) {
               assetsList = res.data || [];
+              assetsList.forEach(a => {
+                if (a.Current_Status === 'Deployed') {
+                  a.Current_Status = 'Onsite Deployed';
+                }
+              });
               populateFilterDropdowns();
               renderTable();
               showToast("Data Refreshed", "Asset records loaded from database.", "info");

@@ -36,6 +36,11 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(res => {
         if (res.success) {
           assetsList = res.data || [];
+          assetsList.forEach(a => {
+            if (a.Current_Status === 'Deployed') {
+              a.Current_Status = 'Onsite Deployed';
+            }
+          });
           updateKPIs();
           renderHomeChart();
         } else {
@@ -49,17 +54,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateKPIs() {
     const totalAssetsEl = document.getElementById('kpi-total-assets');
-    const deployedEl = document.getElementById('kpi-deployed');
     const onsiteEl = document.getElementById('kpi-onsite');
     const pulledEl = document.getElementById('kpi-pulled');
 
     const total = assetsList.length;
-    const deployed = assetsList.filter(a => a.Current_Status === 'Deployed').length;
     const onsite = assetsList.filter(a => a.Current_Status === 'Onsite Deployed').length;
     const pulled = assetsList.filter(a => a.Current_Status === 'Pulled Out').length;
 
     if (totalAssetsEl) totalAssetsEl.textContent = total;
-    if (deployedEl) deployedEl.textContent = deployed;
     if (onsiteEl) onsiteEl.textContent = onsite;
     if (pulledEl) pulledEl.textContent = pulled;
   }
