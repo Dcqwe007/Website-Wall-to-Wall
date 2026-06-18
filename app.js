@@ -302,6 +302,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let assetsList = [];
     let currentFilteredList = []; // Tracks currently visible/filtered rows for CSV export
     let selectedStation = null; // Track row selections by Station_Number (Primary Key)
+    const pingStatusCache = {}; // Cache for ping results: { [ip]: { online: boolean, time: string, timestamp: number } }
     let sortColumn = 'Station_Number';
     let sortOrder = 'asc';
     let searchQuery = '';
@@ -513,6 +514,7 @@ document.addEventListener('DOMContentLoaded', () => {
             asset.Asset_located_floor,
             asset.Site,
             asset.Current_Status,
+            asset.Hostname,
             asset.Created_Date,
             asset.Modified_Date
           ];
@@ -549,7 +551,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         emptyMessage.style.display = 'none';
 
-        filtered.forEach(asset => {
+        filtered.forEach((asset, index) => {
           const tr = document.createElement('tr');
           tr.setAttribute('data-station', asset.Station_Number);
 
@@ -563,10 +565,21 @@ document.addEventListener('DOMContentLoaded', () => {
           else if (asset.Current_Status === 'Pulled Out') badgeClass = 'badge-pulled';
 
           tr.innerHTML = `
-            <td><strong>${asset.Station_Number}</strong></td>
-            <td>${asset.CPU_Model || '-'}</td>
+            <td class="cpu-ping-visible"><strong>${asset.Station_Number}</strong></td>
+            <td class="cpu-ping-visible">${asset.CPU_Model || '-'}</td>
             <td style="font-family: monospace; font-size: 12px;">${asset.CPU_Serial || '-'}</td>
             <td>${asset.CPU_Brand || '-'}</td>
+            <td class="cpu-ping-visible hostname-column">
+              ${asset.Hostname ? `
+                <div class="hostname-monitor-container" style="display: flex; align-items: center; gap: 6px;">
+                  <span class="hostname-text" style="font-family: monospace; font-size: 12px; font-weight: 500;">${asset.Hostname}</span>
+                  <button class="btn-ping-monitor" data-host="${asset.Hostname}" title="Ping Host Status" style="background: rgba(34, 211, 238, 0.1); border: 1px solid rgba(34, 211, 238, 0.2); cursor: pointer; color: #22D3EE; padding: 3px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; transition: all 0.2s; outline: none; margin: 0;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none;"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                  </button>
+                  <span class="ping-status-indicator" style="width: 8px; height: 8px; border-radius: 50%; background-color: #9CA3AF; display: inline-block; cursor: help; flex-shrink: 0;" title="Not tested"></span>
+                </div>
+              ` : '<span style="color: #9CA3AF;">-</span>'}
+            </td>
             <td>${asset.Monitor1_Model || '-'}</td>
             <td style="font-family: monospace; font-size: 12px;">${asset.Monitor1_Serial || '-'}</td>
             <td>${asset.Monitor1_Brand || '-'}</td>
@@ -576,13 +589,100 @@ document.addEventListener('DOMContentLoaded', () => {
             <td>${asset.Monitor3_Model || '-'}</td>
             <td style="font-family: monospace; font-size: 12px;">${asset.Monitor3_Serial || '-'}</td>
             <td>${asset.Monitor3_Brand || '-'}</td>
-            <td>${asset.Program || '-'}</td>
-            <td>${asset.Asset_located_floor || '-'}</td>
-            <td>${asset.Site || '-'}</td>
+            <td class="cpu-ping-visible">${asset.Program || '-'}</td>
+            <td class="cpu-ping-visible">${asset.Asset_located_floor || '-'}</td>
+            <td class="cpu-ping-visible">${asset.Site || '-'}</td>
             <td><span class="badge ${badgeClass}">${asset.Current_Status}</span></td>
             <td style="font-size: 11px; opacity: 0.75;">${asset.Created_Date || '-'}</td>
             <td style="font-size: 11px; color: #22D3EE; font-weight: 600;">${asset.Modified_Date || '-'}</td>
           `;
+
+          // Ping button handler
+          const pingBtn = tr.querySelector('.btn-ping-monitor');
+          if (pingBtn) {
+            const host = pingBtn.getAttribute('data-host');
+            const indicator = tr.querySelector('.ping-status-indicator');
+
+            // Define the ping execution function
+            const doPing = (showToastFlag = false) => {
+              // Show loading state
+              indicator.style.backgroundColor = '#F59E0B'; // Amber
+              indicator.setAttribute('title', 'Pinging...');
+              pingBtn.style.color = '#F59E0B';
+              pingBtn.style.borderColor = '#F59E0B';
+              pingBtn.style.backgroundColor = 'rgba(245, 158, 11, 0.1)';
+              
+              fetch('api.php?action=ping', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ host: host })
+              })
+              .then(res => res.json())
+              .then(data => {
+                if (data.success && data.online) {
+                  const successResult = { online: true, time: data.time || '1 ms', timestamp: Date.now() };
+                  pingStatusCache[host] = successResult;
+                  applyPingStatus(successResult, showToastFlag);
+                } else {
+                  const failResult = { online: false, time: data.message || 'Offline', timestamp: Date.now() };
+                  pingStatusCache[host] = failResult;
+                  applyPingStatus(failResult, showToastFlag);
+                }
+              })
+              .catch(err => {
+                const errResult = { online: false, time: 'Connection Error', timestamp: Date.now() };
+                pingStatusCache[host] = errResult;
+                applyPingStatus(errResult, showToastFlag);
+              });
+            };
+
+            // Helper to apply the visual ping status
+            const applyPingStatus = (result, showToastFlag = false) => {
+              if (result.online) {
+                indicator.style.backgroundColor = '#10B981'; // Green (PC is Open/On)
+                indicator.setAttribute('title', `Online (${result.time})`);
+                pingBtn.style.color = '#10B981';
+                pingBtn.style.borderColor = '#10B981';
+                pingBtn.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                if (showToastFlag) {
+                  showToast("Host Online", `Station ${asset.Station_Number} (${host}) responded. Latency: ${result.time}`, "success");
+                }
+              } else {
+                indicator.style.backgroundColor = '#EF4444'; // Red (PC is Off)
+                indicator.setAttribute('title', `Offline: ${result.time}`);
+                pingBtn.style.color = '#EF4444';
+                pingBtn.style.borderColor = '#EF4444';
+                pingBtn.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+                if (showToastFlag) {
+                  showToast("Host Offline", `Station ${asset.Station_Number} (${host}) is offline / unreachable.`, "danger");
+                }
+              }
+            };
+
+            // Attach the function to the element for programmatic live monitoring
+            pingBtn.doPing = doPing;
+
+            // 1. Check if we have a fresh cached status (valid for 25 seconds during manual/reload refreshes)
+            const cache = pingStatusCache[host];
+            const isCacheFresh = cache && (Date.now() - cache.timestamp < 25000);
+
+            if (isCacheFresh) {
+              applyPingStatus(cache, false);
+            } else {
+              // Trigger automatic background ping with staggered delay
+              setTimeout(() => {
+                if (document.body.contains(tr)) {
+                  doPing(false);
+                }
+              }, index * 100);
+            }
+
+            // 2. Click handler for manual check (always forces live ping and updates cache)
+            pingBtn.addEventListener('click', (e) => {
+              e.stopPropagation(); // Stop row selection trigger
+              doPing(true);
+            });
+          }
 
           // Row click selection by Station_Number
           tr.addEventListener('click', (e) => {
@@ -752,7 +852,8 @@ document.addEventListener('DOMContentLoaded', () => {
         Program: document.getElementById('add-program').value,
         Asset_located_floor: document.getElementById('add-floor').value.trim(),
         Site: document.getElementById('add-site').value.trim(),
-        Current_Status: document.getElementById('add-status').value
+        Current_Status: document.getElementById('add-status').value,
+        Hostname: document.getElementById('add-hostname').value.trim()
       };
 
       fetch('api.php?action=add', {
@@ -786,6 +887,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('edit-cpu-model').value = asset.CPU_Model || '';
       document.getElementById('edit-cpu-serial').value = asset.CPU_Serial || '';
       document.getElementById('edit-cpu-brand').value = asset.CPU_Brand || '';
+      document.getElementById('edit-hostname').value = asset.Hostname || '';
       document.getElementById('edit-mon1-model').value = asset.Monitor1_Model || '';
       document.getElementById('edit-mon1-serial').value = asset.Monitor1_Serial || '';
       document.getElementById('edit-mon1-brand').value = asset.Monitor1_Brand || '';
@@ -826,7 +928,8 @@ document.addEventListener('DOMContentLoaded', () => {
         Program: document.getElementById('edit-program').value,
         Asset_located_floor: document.getElementById('edit-floor').value.trim(),
         Site: document.getElementById('edit-site').value.trim(),
-        Current_Status: document.getElementById('edit-status').value
+        Current_Status: document.getElementById('edit-status').value,
+        Hostname: document.getElementById('edit-hostname').value.trim()
       };
 
       fetch('api.php?action=edit', {
@@ -997,7 +1100,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Headers matching the new schema
       const headers = [
-        "Station_Number", "CPU_Model", "CPU_Serial", "CPU_Brand",
+        "Station_Number", "CPU_Model", "CPU_Serial", "CPU_Brand", "Hostname",
         "Monitor1_Model", "Monitor1_Serial", "Monitor1_Brand",
         "Monitor2_Model", "Monitor2_Serial", "Monitor2_Brand",
         "Monitor3_Model", "Monitor3_Serial", "Monitor3_Brand",
@@ -1014,6 +1117,7 @@ document.addEventListener('DOMContentLoaded', () => {
           asset.CPU_Model || '',
           asset.CPU_Serial || '',
           asset.CPU_Brand || '',
+          asset.Hostname || '',
           asset.Monitor1_Model || '',
           asset.Monitor1_Serial || '',
           asset.Monitor1_Brand || '',
@@ -1083,8 +1187,36 @@ document.addEventListener('DOMContentLoaded', () => {
       btnLogoutSidebar.addEventListener('click', triggerLogout);
     }
 
+    // Check if ?view=cpu_ping is in the URL search params
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('view') === 'cpu_ping') {
+      const pingBanner = document.getElementById('cpu-ping-banner');
+      const customTable = document.querySelector('.table-custom');
+      if (pingBanner) pingBanner.style.display = 'flex';
+      if (customTable) customTable.classList.add('table-cpu-ping-view');
+
+      const btnClearCpuView = document.getElementById('btn-clear-cpu-view');
+      if (btnClearCpuView) {
+        btnClearCpuView.addEventListener('click', () => {
+          window.location.href = 'dashboard.php';
+        });
+      }
+    }
+
     // Initial assets load on document ready
     fetchAssetsFromDatabase();
+
+    // Live Monitoring background timer: automatically pings all visible hostnames every 30 seconds
+    setInterval(() => {
+      const pingButtons = document.querySelectorAll('.btn-ping-monitor');
+      pingButtons.forEach((btn, index) => {
+        if (typeof btn.doPing === 'function') {
+          setTimeout(() => {
+            btn.doPing(false);
+          }, index * 100);
+        }
+      });
+    }, 30000); // 30 seconds
 
   }
 

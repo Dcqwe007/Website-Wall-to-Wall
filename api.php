@@ -20,6 +20,35 @@ $inputData = json_decode(file_get_contents('php://input'), true) ?? [];
 // Establish database link
 $db = getDBConnection();
 
+/**
+ * Resolves local NetBIOS hostname to an IP address using ARP table and nbtstat
+ */
+function resolve_local_hostname($hostname) {
+    $lines = [];
+    @exec('arp -a', $lines);
+    $ips = [];
+    foreach ($lines as $line) {
+        if (preg_match('/^\s*([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\s+/i', $line, $matches)) {
+            $ip = $matches[1];
+            if (preg_match('/\.1$/', $ip) || $ip === '127.0.0.1' || preg_match('/\.255$/', $ip)) {
+                continue;
+            }
+            $ips[] = $ip;
+        }
+    }
+    $ips = array_unique($ips);
+    foreach ($ips as $ip) {
+        $nbtOutput = [];
+        @exec('nbtstat -A ' . escapeshellarg($ip), $nbtOutput);
+        foreach ($nbtOutput as $nbtLine) {
+            if (stripos($nbtLine, $hostname) !== false) {
+                return $ip;
+            }
+        }
+    }
+    return null;
+}
+
 try {
     switch ($action) {
         
@@ -174,13 +203,13 @@ try {
                         Monitor1_Model, Monitor1_Serial, Monitor1_Brand,
                         Monitor2_Model, Monitor2_Serial, Monitor2_Brand,
                         Monitor3_Model, Monitor3_Serial, Monitor3_Brand,
-                        Program, Asset_located_floor, Site, Current_Status, Created_Date
+                        Program, Asset_located_floor, Site, Current_Status, Hostname, Created_Date
                     ) VALUES (
                         :Station_Number, :CPU_Model, :CPU_Serial, :CPU_Brand,
                         :Monitor1_Model, :Monitor1_Serial, :Monitor1_Brand,
                         :Monitor2_Model, :Monitor2_Serial, :Monitor2_Brand,
                         :Monitor3_Model, :Monitor3_Serial, :Monitor3_Brand,
-                        :Program, :Asset_located_floor, :Site, :Current_Status, NOW()
+                        :Program, :Asset_located_floor, :Site, :Current_Status, :Hostname, NOW()
                     )";
             
             $stmt = $db->prepare($sql);
@@ -201,7 +230,8 @@ try {
                 'Program'             => trim($inputData['Program'] ?? ''),
                 'Asset_located_floor' => trim($inputData['Asset_located_floor'] ?? ''),
                 'Site'                => trim($inputData['Site'] ?? ''),
-                'Current_Status'      => trim($inputData['Current_Status'] ?? 'Onsite Deployed')
+                'Current_Status'      => trim($inputData['Current_Status'] ?? 'Onsite Deployed'),
+                'Hostname'            => trim($inputData['Hostname'] ?? '')
             ]);
 
             echo json_encode(['success' => true]);
@@ -248,6 +278,7 @@ try {
                         Asset_located_floor  = :Asset_located_floor,
                         Site                 = :Site,
                         Current_Status       = :Current_Status,
+                        Hostname             = :Hostname,
                         Modified_Date        = NOW()
                     WHERE Station_Number = :old_Station_Number";
             
@@ -270,6 +301,7 @@ try {
                 'Asset_located_floor' => trim($inputData['Asset_located_floor'] ?? ''),
                 'Site'                => trim($inputData['Site'] ?? ''),
                 'Current_Status'      => trim($inputData['Current_Status'] ?? 'Onsite Deployed'),
+                'Hostname'            => trim($inputData['Hostname'] ?? ''),
                 'old_Station_Number'  => $oldStation
             ]);
 
@@ -293,6 +325,112 @@ try {
             $stmt->execute(['status' => $status, 'station' => $station]);
 
             echo json_encode(['success' => true]);
+            break;
+
+        // --------------------------------------------------------
+        // ACTION: PING CPU IP ADDRESS
+        // --------------------------------------------------------
+        case 'ping':
+            if (!isset($_SESSION['aether_session_token'])) {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized session access.']);
+                exit;
+            }
+
+            $host = trim($inputData['host'] ?? '');
+            if (empty($host)) {
+                echo json_encode(['success' => false, 'message' => 'Hostname or IP is empty.']);
+                exit;
+            }
+
+            // Simple validation of hostname or IP
+            if (!filter_var($host, FILTER_VALIDATE_IP) && !preg_match('/^[a-zA-Z0-9.-]+$/', $host)) {
+                echo json_encode(['success' => false, 'message' => 'Invalid hostname or IP address format.']);
+                exit;
+            }
+
+            // 1. Check if the target is the local machine (always online)
+            $isLocal = false;
+            $localHostname = gethostname();
+            if (
+                strcasecmp($host, 'localhost') === 0 ||
+                $host === '127.0.0.1' ||
+                $host === '::1' ||
+                ($localHostname && strcasecmp($host, $localHostname) === 0)
+            ) {
+                $isLocal = true;
+            }
+
+            if ($isLocal) {
+                echo json_encode(['success' => true, 'online' => true, 'time' => '<1 ms (Local)']);
+                exit;
+            }
+
+            // Determine target IP to test
+            $ip = $host;
+            $resolved = false;
+            if (filter_var($host, FILTER_VALIDATE_IP)) {
+                $resolved = true;
+            } else {
+                $dnsIp = gethostbyname($host);
+                if ($dnsIp !== $host) {
+                    $ip = $dnsIp;
+                    $resolved = true;
+                }
+            }
+
+            // If standard DNS lookup failed, try our NetBIOS resolution fallback
+            if (!$resolved) {
+                $netbiosIp = resolve_local_hostname($host);
+                if ($netbiosIp) {
+                    $ip = $netbiosIp;
+                    $resolved = true;
+                }
+            }
+
+            // 2. Execute system ICMP ping command on resolved IP/Host
+            $str = PHP_OS;
+            if (stristr($str, 'win')) {
+                $cmd = 'ping -n 1 -w 1000 ' . escapeshellarg($ip);
+            } else {
+                $cmd = 'ping -c 1 -W 1 ' . escapeshellarg($ip);
+            }
+
+            exec($cmd, $outcome, $status);
+
+            // Parse response time if possible
+            $timeMs = null;
+            if ($status === 0) {
+                foreach ($outcome as $line) {
+                    if (preg_match('/time[<=]([0-9.]+)\s*ms/i', $line, $matches)) {
+                        $timeMs = $matches[1] . ' ms';
+                        break;
+                    }
+                }
+                if (!$timeMs) {
+                    $timeMs = '<1 ms';
+                }
+                echo json_encode(['success' => true, 'online' => true, 'time' => $timeMs]);
+                exit;
+            }
+
+            // 3. Fallback TCP check (since Windows Firewall blocks ICMP by default on local network PCs)
+            $tcpOnline = false;
+            $ports = [135, 445, 80];
+            foreach ($ports as $port) {
+                $connection = @fsockopen($ip, $port, $errno, $errstr, 0.4);
+                if (is_resource($connection)) {
+                    fclose($connection);
+                    $tcpOnline = true;
+                    break;
+                }
+            }
+
+            if ($tcpOnline) {
+                echo json_encode(['success' => true, 'online' => true, 'time' => 'TCP Active']);
+            } else {
+                echo json_encode(['success' => true, 'online' => false, 'message' => 'Offline / Unreachable']);
+            }
             break;
 
         // --------------------------------------------------------
@@ -327,17 +465,18 @@ try {
             $db->exec("DELETE FROM assets");
 
             // Seed array
+            // Seed array (includes local test IP / localhost address for demo purposes)
             $defaults = [
-                [101, 'ProDesk 600 G3', '3CQ7482Z7X', 'HP', 'EliteDisplay E232', '6CM7451FL8', 'HP', 'EliteDisplay E232', '6CM7451FL9', 'HP', 'EliteDisplay E232', '6CM7451FL0', 'HP', 'Macys', '3rd', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', '2026-06-02 18:58:00'],
-                [102, 'EliteDesk 800 G4', '3CQ8120W2Y', 'HP', 'EliteDisplay E233', '6CM8190Y2B', 'HP', 'EliteDisplay E233', '6CM8190Y2C', 'HP', NULL, NULL, NULL, 'Macys', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', '2026-06-02 18:58:00'],
-                [103, 'OptiPlex 7050', 'CN07F10V3S', 'Dell', 'Dell P2417H', 'CN03V10W2R', 'Dell', 'Dell P2417H', 'CN03V10W2S', 'Dell', 'Dell P2417H', 'CN03V10W2T', 'Dell', 'Elevance', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
-                [104, 'ThinkCentre M720q', 'PC09X12Y', 'Lenovo', 'ThinkVision T23d', 'V10Y7812', 'Lenovo', 'ThinkVision T23d', 'V10Y7813', 'Lenovo', NULL, NULL, NULL, 'Oscar', '2nd', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
-                [105, 'ProDesk 600 G3', '3CQ7482Z8Y', 'HP', 'EliteDisplay E232', '6CM7451FM1', 'HP', 'EliteDisplay E232', '6CM7451FM2', 'HP', NULL, NULL, NULL, 'Elevance', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
-                [106, 'EliteDesk 800 G4', '3CQ8120W3Z', 'HP', 'EliteDisplay E233', '6CM8190Y3D', 'HP', 'EliteDisplay E233', '6CM8190Y3E', 'HP', NULL, NULL, NULL, 'UHG', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
-                [107, 'OptiPlex 7050', 'CN07F10V4T', 'Dell', 'Dell P2417H', 'CN03V10W3T', 'Dell', 'Dell P2417H', 'CN03V10W3U', 'Dell', NULL, NULL, NULL, 'Oscar', '2nd', 'UP2', 'Pulled Out', '2026-06-02 18:58:00', '2026-06-02 11:46:00'],
-                [108, 'ThinkCentre M720q', 'PC09X13Z', 'Lenovo', 'ThinkVision T23d', 'V10Y7814', 'Lenovo', 'ThinkVision T23d', 'V10Y7815', 'Lenovo', NULL, NULL, NULL, 'Oscar', '2nd', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
-                [109, 'ProDesk 600 G3', '3CQ7482Z9Z', 'HP', 'EliteDisplay E232', '6CM7451FM3', 'HP', 'EliteDisplay E232', '6CM7451FM4', 'HP', NULL, NULL, NULL, 'Highmark', 'Ground Floor', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', '2026-06-02 16:01:00'],
-                [110, 'EliteDesk 800 G4', '3CQ8120W4A', 'HP', 'EliteDisplay E233', '6CM8190Y4F', 'HP', 'EliteDisplay E233', '6CM8190Y4G', 'HP', NULL, NULL, NULL, 'Highmark', 'Ground Floor', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL]
+                [101, 'ProDesk 600 G3', '3CQ7482Z7X', 'HP', 'EliteDisplay E232', '6CM7451FL8', 'HP', 'EliteDisplay E232', '6CM7451FL9', 'HP', 'EliteDisplay E232', '6CM7451FL0', 'HP', 'Macys', '3rd', 'UP2', 'Onsite Deployed', 'localhost', '2026-06-02 18:58:00', '2026-06-02 18:58:00'],
+                [102, 'EliteDesk 800 G4', '3CQ8120W2Y', 'HP', 'EliteDisplay E233', '6CM8190Y2B', 'HP', 'EliteDisplay E233', '6CM8190Y2C', 'HP', NULL, NULL, NULL, 'Macys', '4th', 'UP2', 'Onsite Deployed', 'desktop-kpi102', '2026-06-02 18:58:00', '2026-06-02 18:58:00'],
+                [103, 'OptiPlex 7050', 'CN07F10V3S', 'Dell', 'Dell P2417H', 'CN03V10W2R', 'Dell', 'Dell P2417H', 'CN03V10W2S', 'Dell', 'Dell P2417H', 'CN03V10W2T', 'Dell', 'Elevance', '4th', 'UP2', 'Onsite Deployed', 'desktop-kpi103', '2026-06-02 18:58:00', NULL],
+                [104, 'ThinkCentre M720q', 'PC09X12Y', 'Lenovo', 'ThinkVision T23d', 'V10Y7812', 'Lenovo', 'ThinkVision T23d', 'V10Y7813', 'Lenovo', NULL, NULL, NULL, 'Oscar', '2nd', 'UP2', 'Onsite Deployed', 'desktop-kpi104', '2026-06-02 18:58:00', NULL],
+                [105, 'ProDesk 600 G3', '3CQ7482Z8Y', 'HP', 'EliteDisplay E232', '6CM7451FM1', 'HP', 'EliteDisplay E232', '6CM7451FM2', 'HP', NULL, NULL, NULL, 'Elevance', '4th', 'UP2', 'Onsite Deployed', 'desktop-kpi105', '2026-06-02 18:58:00', NULL],
+                [106, 'EliteDesk 800 G4', '3CQ8120W3Z', 'HP', 'EliteDisplay E233', '6CM8190Y3D', 'HP', 'EliteDisplay E233', '6CM8190Y3E', 'HP', NULL, NULL, NULL, 'UHG', '4th', 'UP2', 'Onsite Deployed', 'desktop-kpi106', '2026-06-02 18:58:00', NULL],
+                [107, 'OptiPlex 7050', 'CN07F10V4T', 'Dell', 'Dell P2417H', 'CN03V10W3T', 'Dell', 'Dell P2417H', 'CN03V10W3U', 'Dell', NULL, NULL, NULL, 'Oscar', '2nd', 'UP2', 'Pulled Out', 'desktop-kpi107', '2026-06-02 18:58:00', '2026-06-02 11:46:00'],
+                [108, 'ThinkCentre M720q', 'PC09X13Z', 'Lenovo', 'ThinkVision T23d', 'V10Y7814', 'Lenovo', 'ThinkVision T23d', 'V10Y7815', 'Lenovo', NULL, NULL, NULL, 'Oscar', '2nd', 'UP2', 'Onsite Deployed', 'desktop-kpi108', '2026-06-02 18:58:00', NULL],
+                [109, 'ProDesk 600 G3', '3CQ7482Z9Z', 'HP', 'EliteDisplay E232', '6CM7451FM3', 'HP', 'EliteDisplay E232', '6CM7451FM4', 'HP', NULL, NULL, NULL, 'Highmark', 'Ground Floor', 'UP2', 'Onsite Deployed', 'localhost', '2026-06-02 18:58:00', '2026-06-02 16:01:00'],
+                [110, 'EliteDesk 800 G4', '3CQ8120W4A', 'HP', 'EliteDisplay E233', '6CM8190Y4F', 'HP', 'EliteDisplay E233', '6CM8190Y4G', 'HP', NULL, NULL, NULL, 'Highmark', 'Ground Floor', 'UP2', 'Onsite Deployed', 'desktop-kpi110', '2026-06-02 18:58:00', NULL]
             ];
 
             $insSql = "INSERT INTO assets (
@@ -345,8 +484,8 @@ try {
                             Monitor1_Model, Monitor1_Serial, Monitor1_Brand,
                             Monitor2_Model, Monitor2_Serial, Monitor2_Brand,
                             Monitor3_Model, Monitor3_Serial, Monitor3_Brand,
-                            Program, Asset_located_floor, Site, Current_Status, Created_Date, Modified_Date
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                            Program, Asset_located_floor, Site, Current_Status, Hostname, Created_Date, Modified_Date
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             
             $stmt = $db->prepare($insSql);
             foreach ($defaults as $row) {

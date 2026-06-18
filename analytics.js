@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return res.json();
       })
       .then(res => {
+        if (res.success) {
           assetsList = res.data || [];
           assetsList.forEach(a => {
             if (a.Current_Status === 'Deployed') {
@@ -128,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
               padding: 10,
               cornerRadius: 4,
               callbacks: {
-                label: function(context) {
+                label: function (context) {
                   const val = context.raw;
                   const total = context.dataset.data.reduce((a, b) => a + b, 0);
                   const percentage = ((val / total) * 100).toFixed(1);

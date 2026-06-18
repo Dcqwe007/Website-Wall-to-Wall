@@ -13,13 +13,17 @@ $currentPage = basename($_SERVER['PHP_SELF']);
       <i data-lucide="home" style="width: 16px; height: 16px;"></i>
       <span>Home Dashboard</span>
     </a>
-    <a href="dashboard.php" class="nav-item <?php echo ($currentPage == 'dashboard.php') ? 'active' : ''; ?>" id="nav-grid">
+    <a href="dashboard.php" class="nav-item <?php echo ($currentPage == 'dashboard.php' && !isset($_GET['view'])) ? 'active' : ''; ?>" id="nav-grid">
       <i data-lucide="layout-grid" style="width: 16px; height: 16px;"></i>
       <span>Wall to Wall</span>
     </a>
     <a href="analytics.php" class="nav-item <?php echo ($currentPage == 'analytics.php') ? 'active' : ''; ?>" id="nav-analytics">
       <i data-lucide="pie-chart" style="width: 16px; height: 16px;"></i>
       <span>Analytics</span>
+    </a>
+    <a href="dashboard.php?view=cpu_ping" class="nav-item <?php echo ($currentPage == 'dashboard.php' && isset($_GET['view']) && $_GET['view'] == 'cpu_ping') ? 'active' : ''; ?>" id="nav-cpu-ping-monitoring">
+      <i data-lucide="activity" style="width: 16px; height: 16px;"></i>
+      <span>CPU Ping Monitoring</span>
     </a>
   </nav>
   <div class="sidebar-footer">

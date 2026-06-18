@@ -12,7 +12,7 @@ if (!isset($_SESSION['aether_session_token'])) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>IT System Dashboard - Home</title>
-  <link rel="stylesheet" href="style.v2.css">
+  <link rel="stylesheet" href="style.v2.css?v=1.3">
   
   <!-- CDNs for Icons and Charts -->
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -54,7 +54,7 @@ if (!isset($_SESSION['aether_session_token'])) {
         </div>
 
         <!-- KPI Summary Stats Cards Grid -->
-        <div class="kpi-grid" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="kpi-grid">
           <div class="kpi-card-tile">
             <div class="kpi-tile-icon" style="background-color: rgba(0, 90, 158, 0.1); color: #005A9E;">
               <i data-lucide="monitor"></i>
@@ -161,6 +161,6 @@ if (!isset($_SESSION['aether_session_token'])) {
     // Lucide Icon activation
     lucide.createIcons();
   </script>
-  <script src="home.js"></script>
+  <script src="home.js?v=1.3"></script>
 </body>
 </html>

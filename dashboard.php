@@ -12,7 +12,7 @@ if (!isset($_SESSION['aether_session_token'])) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>IT Wall to Wall Monitoring System</title>
-  <link rel="stylesheet" href="style.v2.css">
+  <link rel="stylesheet" href="style.v2.css?v=1.6">
   
   <!-- CDN for Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -140,15 +140,27 @@ if (!isset($_SESSION['aether_session_token'])) {
       </div>
     </div>
 
+    <!-- CPU Ping Monitoring View Active Banner -->
+    <div class="cpu-ping-banner" id="cpu-ping-banner" style="display: none; background: #E8F4FD; border: 1px solid #B8DBF5; border-radius: 4px; padding: 12px 20px; margin: 10px 20px; align-items: center; justify-content: space-between; font-size: 14px; color: #1C6091; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <i data-lucide="activity" style="width: 16px; height: 16px; color: #1C6091;"></i>
+        <span><strong>CPU Ping Monitoring View Active</strong>: Hiding other columns to focus on station connectivity.</span>
+      </div>
+      <button class="btn-clear-cpu-view" id="btn-clear-cpu-view" style="background: #005A9E; border: none; color: white; padding: 6px 14px; border-radius: 4px; font-weight: 600; cursor: pointer; transition: all 0.15s ease; font-size: 12px;" onmouseover="this.style.background='#004578'" onmouseout="this.style.background='#005A9E'">
+        Show Full Inventory
+      </button>
+    </div>
+
     <!-- Main Table Workspace -->
     <main class="table-workspace">
       <table class="table-custom">
         <thead>
           <tr>
-            <th data-sort="Station_Number">Station No.<span class="sort-indicator"></span></th>
-            <th data-sort="CPU_Model">CPU Model<span class="sort-indicator"></span></th>
+            <th data-sort="Station_Number" class="cpu-ping-visible">Station No.<span class="sort-indicator"></span></th>
+            <th data-sort="CPU_Model" class="cpu-ping-visible">CPU Model<span class="sort-indicator"></span></th>
             <th data-sort="CPU_Serial">CPU Serial<span class="sort-indicator"></span></th>
             <th data-sort="CPU_Brand">CPU Brand<span class="sort-indicator"></span></th>
+            <th data-sort="Hostname" class="cpu-ping-visible hostname-column">Hostname / Monitor<span class="sort-indicator"></span></th>
             <th data-sort="Monitor1_Model">Mon1 Model<span class="sort-indicator"></span></th>
             <th data-sort="Monitor1_Serial">Mon1 Serial<span class="sort-indicator"></span></th>
             <th data-sort="Monitor1_Brand">Mon1 Brand<span class="sort-indicator"></span></th>
@@ -158,9 +170,9 @@ if (!isset($_SESSION['aether_session_token'])) {
             <th data-sort="Monitor3_Model">Mon3 Model<span class="sort-indicator"></span></th>
             <th data-sort="Monitor3_Serial">Mon3 Serial<span class="sort-indicator"></span></th>
             <th data-sort="Monitor3_Brand">Mon3 Brand<span class="sort-indicator"></span></th>
-            <th data-sort="Program">Program<span class="sort-indicator"></span></th>
-            <th data-sort="Asset_located_floor">Floor<span class="sort-indicator"></span></th>
-            <th data-sort="Site">Site<span class="sort-indicator"></span></th>
+            <th data-sort="Program" class="cpu-ping-visible">Program<span class="sort-indicator"></span></th>
+            <th data-sort="Asset_located_floor" class="cpu-ping-visible">Floor<span class="sort-indicator"></span></th>
+            <th data-sort="Site" class="cpu-ping-visible">Site<span class="sort-indicator"></span></th>
             <th data-sort="Current_Status">Status<span class="sort-indicator"></span></th>
             <th data-sort="Created_Date">Created<span class="sort-indicator"></span></th>
             <th data-sort="Modified_Date">Modified<span class="sort-indicator"></span></th>
@@ -233,6 +245,10 @@ if (!isset($_SESSION['aether_session_token'])) {
           <div class="form-group">
             <label class="form-label">CPU Brand</label>
             <input type="text" class="modal-input-field" id="add-cpu-brand" placeholder="e.g. HP">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Hostname</label>
+            <input type="text" class="modal-input-field" id="add-hostname" placeholder="e.g. DESKTOP-PC101">
           </div>
           <div class="form-group">
             <label class="form-label">Monitor 1 Model</label>
@@ -336,6 +352,10 @@ if (!isset($_SESSION['aether_session_token'])) {
           <div class="form-group">
             <label class="form-label">CPU Brand</label>
             <input type="text" class="modal-input-field" id="edit-cpu-brand">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Hostname</label>
+            <input type="text" class="modal-input-field" id="edit-hostname" placeholder="e.g. DESKTOP-PC101">
           </div>
           <div class="form-group">
             <label class="form-label">Monitor 1 Model</label>
@@ -466,6 +486,6 @@ if (!isset($_SESSION['aether_session_token'])) {
     // Lucide Icon activation
     lucide.createIcons();
   </script>
-  <script src="app.js"></script>
+  <script src="app.js?v=1.4"></script>
 </body>
 </html>

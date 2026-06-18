@@ -1293,7 +1293,7 @@ th.sorted-desc .sort-indicator::after {
 /* KPI Summary grid */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 }
 
@@ -1525,4 +1525,138 @@ th.sorted-desc .sort-indicator::after {
 .toolbar-search-filter .active-filter-badge {
   background-color: var(--bg-header-footer);
   color: #FFFFFF;
+}
+
+/* ==========================================
+   DYNAMIC HOME PAGE ANIMATIONS
+   ========================================== */
+
+/* Keyframe Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes floatIcon {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(2deg);
+  }
+}
+
+@keyframes pulseDot {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+  }
+  70% {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 6px rgba(40, 167, 69, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+  }
+}
+
+/* Application of Animations to Home elements */
+.welcome-banner-card {
+  animation: fadeInUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.banner-illustration i {
+  animation: floatIcon 3.5s ease-in-out infinite;
+  display: inline-block;
+}
+
+.indicator-dot {
+  animation: pulseDot 1.8s ease-in-out infinite;
+}
+
+.kpi-card-tile {
+  animation: fadeInUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.kpi-card-tile:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.kpi-card-tile:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.kpi-card-tile:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+/* Staggered animation for homepage columns */
+.home-split-row .home-column-card:first-child {
+  animation: slideInLeft 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 0.35s;
+}
+
+.home-split-row .home-column-card:last-child {
+  animation: slideInRight 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 0.35s;
+}
+
+/* Smooth micro-interactions on quick action tiles */
+.action-link-tile {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 0.2s ease, 
+              background-color 0.2s ease, 
+              box-shadow 0.2s ease;
+}
+
+.action-link-tile:hover {
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 0 6px 16px rgba(0, 59, 92, 0.08);
+}
+
+/* CPU Ping Monitoring View Overrides */
+.table-cpu-ping-view th:not(.cpu-ping-visible),
+.table-cpu-ping-view td:not(.cpu-ping-visible) {
+  display: none !important;
+}
+
+/* Hide Hostname / Monitor column by default in standard Wall to Wall */
+.table-custom th.hostname-column,
+.table-custom td.hostname-column {
+  display: none !important;
+}
+
+/* Show Hostname / Monitor column under CPU Ping Monitoring view */
+.table-cpu-ping-view th.hostname-column,
+.table-cpu-ping-view td.hostname-column {
+  display: table-cell !important;
 }

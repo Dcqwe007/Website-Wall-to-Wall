@@ -12,7 +12,7 @@ if (!isset($_SESSION['aether_session_token'])) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>IT System Dashboard - Reports & Analytics</title>
-  <link rel="stylesheet" href="style.v2.css">
+  <link rel="stylesheet" href="style.v2.css?v=1.3">
   
   <!-- CDNs for Icons and Charts -->
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -109,6 +109,6 @@ if (!isset($_SESSION['aether_session_token'])) {
     // Lucide Icon activation
     lucide.createIcons();
   </script>
-  <script src="analytics.js"></script>
+  <script src="analytics.js?v=1.3"></script>
 </body>
 </html>
