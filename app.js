@@ -1195,6 +1195,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (pingBanner) pingBanner.style.display = 'flex';
       if (customTable) customTable.classList.add('table-cpu-ping-view');
 
+      const btnUpdateStatus = document.getElementById('btn-update-status');
+      if (btnUpdateStatus) btnUpdateStatus.style.display = 'none';
+
       const btnClearCpuView = document.getElementById('btn-clear-cpu-view');
       if (btnClearCpuView) {
         btnClearCpuView.addEventListener('click', () => {
