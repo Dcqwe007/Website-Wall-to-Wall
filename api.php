@@ -14,6 +14,11 @@ require_once 'db.php';
 // Route action parameter
 $action = $_GET['action'] ?? 'fetch';
 
+// If the action is read-only (not login or logout), release the session lock early to allow concurrent AJAX requests
+if ($action !== 'login' && $action !== 'logout') {
+    session_write_close();
+}
+
 // Read JSON input payloads
 $inputData = json_decode(file_get_contents('php://input'), true) ?? [];
 
@@ -47,6 +52,24 @@ function resolve_local_hostname($hostname) {
         }
     }
     return null;
+}
+
+/**
+ * Helper to log edit history events.
+ */
+function log_edit_history($db, $station_number, $action_type, $details) {
+    try {
+        $username = $_SESSION['aether_username'] ?? 'System';
+        $logStmt = $db->prepare("INSERT INTO edit_history (station_number, action_type, username, details, changed_at) VALUES (:station, :action, :username, :details, NOW())");
+        $logStmt->execute([
+            'station'  => intval($station_number),
+            'action'   => $action_type,
+            'username' => $username,
+            'details'  => $details
+        ]);
+    } catch (Exception $e) {
+        error_log("Failed to log edit history: " . $e->getMessage());
+    }
 }
 
 try {
@@ -234,6 +257,11 @@ try {
                 'Hostname'            => trim($inputData['Hostname'] ?? '')
             ]);
 
+            // Log history event
+            $cpuModel = trim($inputData['CPU_Model'] ?? '');
+            $cpuSerial = trim($inputData['CPU_Serial'] ?? '');
+            log_edit_history($db, $stationNum, 'Add', "Asset added (CPU Model: '$cpuModel', CPU Serial: '$cpuSerial')");
+
             echo json_encode(['success' => true]);
             break;
 
@@ -259,6 +287,11 @@ try {
                     exit;
                 }
             }
+
+            // Retrieve old asset for change comparison
+            $oldAssetStmt = $db->prepare("SELECT * FROM assets WHERE Station_Number = :station");
+            $oldAssetStmt->execute(['station' => $oldStation]);
+            $oldAsset = $oldAssetStmt->fetch();
 
             $sql = "UPDATE assets SET 
                         Station_Number       = :Station_Number,
@@ -305,6 +338,47 @@ try {
                 'old_Station_Number'  => $oldStation
             ]);
 
+            // Compare fields to log changes
+            $changes = [];
+            if ($oldAsset) {
+                $fieldsToCompare = [
+                    'Station_Number'      => 'Station Number',
+                    'CPU_Model'           => 'CPU Model',
+                    'CPU_Serial'          => 'CPU Serial',
+                    'CPU_Brand'           => 'CPU Brand',
+                    'Hostname'            => 'Hostname',
+                    'Monitor1_Model'      => 'Monitor 1 Model',
+                    'Monitor1_Serial'     => 'Monitor 1 Serial',
+                    'Monitor1_Brand'      => 'Monitor 1 Brand',
+                    'Monitor2_Model'      => 'Monitor 2 Model',
+                    'Monitor2_Serial'     => 'Monitor 2 Serial',
+                    'Monitor2_Brand'      => 'Monitor 2 Brand',
+                    'Monitor3_Model'      => 'Monitor 3 Model',
+                    'Monitor3_Serial'     => 'Monitor 3 Serial',
+                    'Monitor3_Brand'      => 'Monitor 3 Brand',
+                    'Program'             => 'Program',
+                    'Asset_located_floor' => 'Floor',
+                    'Site'                => 'Site',
+                    'Current_Status'      => 'Status'
+                ];
+
+                foreach ($fieldsToCompare as $dbCol => $label) {
+                    $oldVal = isset($oldAsset[$dbCol]) ? trim($oldAsset[$dbCol]) : '';
+                    $newVal = isset($inputData[$dbCol]) ? trim($inputData[$dbCol]) : '';
+
+                    if ($dbCol === 'Station_Number') {
+                        $oldVal = intval($oldVal);
+                        $newVal = intval($newVal);
+                    }
+
+                    if ($oldVal != $newVal) {
+                        $changes[] = "$label: '" . ($oldVal === '' ? 'empty' : $oldVal) . "' → '" . ($newVal === '' ? 'empty' : $newVal) . "'";
+                    }
+                }
+            }
+            $details = count($changes) > 0 ? implode('; ', $changes) : 'No properties changed';
+            log_edit_history($db, $newStation, 'Edit', $details);
+
             echo json_encode(['success' => true]);
             break;
 
@@ -321,8 +395,17 @@ try {
             $station = intval($inputData['Station_Number'] ?? 0);
             $status  = trim($inputData['Current_Status'] ?? 'Onsite Deployed');
 
+            // Fetch old status for comparison
+            $oldStatusStmt = $db->prepare("SELECT Current_Status FROM assets WHERE Station_Number = :station");
+            $oldStatusStmt->execute(['station' => $station]);
+            $oldStatus = $oldStatusStmt->fetchColumn();
+
             $stmt = $db->prepare("UPDATE assets SET Current_Status = :status, Modified_Date = NOW() WHERE Station_Number = :station");
             $stmt->execute(['status' => $status, 'station' => $station]);
+
+            if ($oldStatus !== false && $oldStatus !== $status) {
+                log_edit_history($db, $station, 'Status Update', "Status: '$oldStatus' → '$status'");
+            }
 
             echo json_encode(['success' => true]);
             break;
@@ -445,8 +528,18 @@ try {
 
             $station = intval($inputData['Station_Number'] ?? 0);
 
+            // Fetch asset details before deletion for logging context
+            $infoStmt = $db->prepare("SELECT CPU_Model, CPU_Serial FROM assets WHERE Station_Number = :station");
+            $infoStmt->execute(['station' => $station]);
+            $assetInfo = $infoStmt->fetch();
+
             $stmt = $db->prepare("DELETE FROM assets WHERE Station_Number = :station");
             $stmt->execute(['station' => $station]);
+
+            if ($assetInfo) {
+                $details = "Asset deleted (CPU Model: '" . ($assetInfo['CPU_Model'] ?? '-') . "', CPU Serial: '" . ($assetInfo['CPU_Serial'] ?? '-') . "')";
+                log_edit_history($db, $station, 'Delete', $details);
+            }
 
             echo json_encode(['success' => true]);
             break;
@@ -492,7 +585,26 @@ try {
                 $stmt->execute($row);
             }
 
+            // Log history event
+            log_edit_history($db, 0, 'Reset', "Database factory reset. Reseeded default assets.");
+
             echo json_encode(['success' => true]);
+            break;
+
+        // --------------------------------------------------------
+        // ACTION: FETCH EDIT HISTORY LOGS
+        // --------------------------------------------------------
+        case 'history':
+            if (!isset($_SESSION['aether_session_token'])) {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized session access.']);
+                exit;
+            }
+
+            $stmt = $db->query("SELECT * FROM edit_history ORDER BY changed_at DESC");
+            $rows = $stmt->fetchAll();
+
+            echo json_encode(['success' => true, 'data' => $rows]);
             break;
 
         default:

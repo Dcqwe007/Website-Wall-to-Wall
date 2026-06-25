@@ -66,3 +66,14 @@ INSERT INTO `assets` (`station_number`, `serial_number`, `model_of_asset`, `bran
 (0, '6cm52619gc', 'HP P221', 'HP', 'Monitor', 'Xerox', '3rd', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL),
 (0, '6cm5260jnm', 'HP P201', 'HP', 'Monitor', 'Elevance', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL)
 ON DUPLICATE KEY UPDATE `serial_number`=`serial_number`;
+
+-- 3. Create the Edit History Table to log all changes in the system
+CREATE TABLE IF NOT EXISTS `edit_history` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `station_number` int(11) NOT NULL,
+  `action_type` varchar(50) NOT NULL,
+  `username` varchar(50) NOT NULL,
+  `details` text NOT NULL,
+  `changed_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

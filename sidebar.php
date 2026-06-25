@@ -25,6 +25,10 @@ $currentPage = basename($_SERVER['PHP_SELF']);
       <i data-lucide="activity" style="width: 16px; height: 16px;"></i>
       <span>CPU Ping Monitoring</span>
     </a>
+    <a href="dashboard.php?view=edit_history" class="nav-item <?php echo ($currentPage == 'dashboard.php' && isset($_GET['view']) && $_GET['view'] == 'edit_history') ? 'active' : ''; ?>" id="nav-edit-history">
+      <i data-lucide="history" style="width: 16px; height: 16px;"></i>
+      <span>Edit History</span>
+    </a>
   </nav>
   <div class="sidebar-footer">
     <div class="user-profile">

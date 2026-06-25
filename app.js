@@ -308,6 +308,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let searchQuery = '';
     let programChart = null; // Chart.js instance for program distribution
 
+    // History states
+    let historyList = [];
+    let currentFilteredHistory = [];
+    let historySortColumn = 'changed_at';
+    let historySortOrder = 'desc';
+    let historySearchQuery = '';
+
     // Multi-faceted Filter States
     let selectedProgram = 'All';
     let selectedCpu = 'All';
@@ -469,6 +476,168 @@ document.addEventListener('DOMContentLoaded', () => {
           showToast("System Connection Error", "Could not connect to database API. Check XAMPP MySQL.", "danger");
           console.error(err);
         });
+    }
+
+    // Load edit history from database API
+    function fetchHistoryFromDatabase() {
+      fetch('api.php?action=history')
+        .then(res => {
+          if (!res.ok) throw new Error("Unauthorized or server connection failure");
+          return res.json();
+        })
+        .then(res => {
+          if (res.success) {
+            historyList = res.data || [];
+            renderHistoryTable();
+          } else {
+            showToast("Fetch Error", res.message || "Failed to fetch edit history.", "danger");
+          }
+        })
+        .catch(err => {
+          showToast("System Connection Error", "Could not connect to database API. Check XAMPP MySQL.", "danger");
+          console.error(err);
+        });
+    }
+
+    // Render edit history table
+    function renderHistoryTable() {
+      const historyTableBody = document.getElementById('history-table-body');
+      const emptyMessage = document.getElementById('table-empty-message');
+      const emptyMessageText = document.getElementById('empty-message-text');
+      
+      if (!historyTableBody) return;
+      historyTableBody.innerHTML = '';
+
+      // Client side filters (Search history input)
+      let filtered = historyList.filter(item => {
+        if (historySearchQuery) {
+          const matchParts = [
+            item.changed_at,
+            item.station_number === 0 ? 'global' : item.station_number,
+            item.action_type,
+            item.username,
+            item.details
+          ];
+          const matchStr = matchParts.map(val => (val !== null && val !== undefined) ? val.toString().toLowerCase() : '').join(' ');
+          return matchStr.includes(historySearchQuery);
+        }
+        return true;
+      });
+
+      // Client side sorting
+      filtered.sort((a, b) => {
+        let valA = a[historySortColumn];
+        let valB = b[historySortColumn];
+
+        if (historySortColumn === 'station_number') {
+          valA = parseInt(valA) || 0;
+          valB = parseInt(valB) || 0;
+        } else {
+          valA = (valA || '').toString().toLowerCase();
+          valB = (valB || '').toString().toLowerCase();
+        }
+
+        if (valA < valB) return historySortOrder === 'asc' ? -1 : 1;
+        if (valA > valB) return historySortOrder === 'asc' ? 1 : -1;
+        return 0;
+      });
+
+      currentFilteredHistory = filtered;
+
+      // Render rows
+      if (filtered.length === 0) {
+        if (emptyMessage) emptyMessage.style.display = 'block';
+        if (emptyMessageText) emptyMessageText.textContent = "No history records found.";
+      } else {
+        if (emptyMessage) emptyMessage.style.display = 'none';
+
+        filtered.forEach(item => {
+          const tr = document.createElement('tr');
+          
+          let badgeClass = 'badge-other';
+          if (item.action_type === 'Add') badgeClass = 'badge-deployed';
+          else if (item.action_type === 'Edit') badgeClass = 'badge-onsite';
+          else if (item.action_type === 'Delete') badgeClass = 'badge-pulled';
+          else if (item.action_type === 'Status Update' || item.action_type === 'Reset') badgeClass = 'badge-other';
+
+          // Format MySQL date and time to a human-readable format
+          let displayDate = item.changed_at;
+          try {
+            const dateObj = new Date(item.changed_at.replace(/-/g, '/'));
+            if (!isNaN(dateObj.getTime())) {
+              displayDate = dateObj.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+              });
+            }
+          } catch (e) {
+            // Keep original if error
+          }
+
+          tr.innerHTML = `
+            <td style="font-family: monospace; font-size: 12.5px;">${displayDate}</td>
+            <td><strong>${item.station_number === 0 ? 'Global / System' : 'Station ' + item.station_number}</strong></td>
+            <td><span class="badge ${badgeClass}">${item.action_type}</span></td>
+            <td><span style="font-weight: 500;">${item.username || '-'}</span></td>
+            <td style="white-space: normal; max-width: 450px; font-size: 11.5px; line-height: 1.4;">${item.details || '-'}</td>
+          `;
+
+          historyTableBody.appendChild(tr);
+        });
+      }
+
+      // Update footer stats
+      if (statsText) {
+        statsText.innerHTML = `Total History Records: <strong>${historyList.length}</strong> | Visible: <strong>${filtered.length}</strong>`;
+      }
+    }
+
+    // Export Edit History to CSV
+    function exportHistoryCSV() {
+      const listToExport = currentFilteredHistory.length > 0 ? currentFilteredHistory : historyList;
+
+      if (listToExport.length === 0) {
+        showToast("Export Failed", "There are no history records to download.", "danger");
+        return;
+      }
+
+      const headers = ["ID", "Changed At", "Station Number", "Action Type", "Operator", "Details"];
+      let csvContent = headers.join(",") + "\r\n";
+
+      listToExport.forEach(item => {
+        const row = [
+          item.id,
+          item.changed_at,
+          item.station_number === 0 ? 'Global' : item.station_number,
+          item.action_type,
+          item.username || '',
+          item.details || ''
+        ].map(val => {
+          let str = (val !== null && val !== undefined) ? val.toString().replace(/"/g, '""') : '';
+          if (str.includes(',') || str.includes('\n') || str.includes('\r') || str.includes('"')) {
+            str = `"${str}"`;
+          }
+          return str;
+        });
+        csvContent += row.join(",") + "\r\n";
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", "it_wall_to_wall_history_export.csv");
+      document.body.appendChild(link);
+
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      showToast("CSV Compiled", "Download for 'it_wall_to_wall_history_export.csv' has started.", "success");
     }
 
     /* ========================================================
@@ -1034,6 +1203,36 @@ document.addEventListener('DOMContentLoaded', () => {
       const icon = document.getElementById('refresh-icon');
       if (icon) icon.classList.add('rotating');
 
+      if (isHistoryView) {
+        historySearchQuery = '';
+        const historySearchInput = document.getElementById('history-search-input');
+        if (historySearchInput) historySearchInput.value = '';
+
+        fetch('api.php?action=history')
+          .then(res => {
+            if (!res.ok) throw new Error("Unauthorized or server connection failure");
+            return res.json();
+          })
+          .then(res => {
+            setTimeout(() => {
+              if (icon) icon.classList.remove('rotating');
+              if (res.success) {
+                historyList = res.data || [];
+                renderHistoryTable();
+                showToast("History Refreshed", "Modification logs loaded from database.", "info");
+              } else {
+                showToast("Fetch Error", res.message || "Failed to fetch edit history.", "danger");
+              }
+            }, 600);
+          })
+          .catch(err => {
+            if (icon) icon.classList.remove('rotating');
+            showToast("Server Connection Error", "Check XAMPP services.", "danger");
+            console.error(err);
+          });
+        return;
+      }
+
       // Clear selections and all filters on refresh
       selectedStation = null;
       searchQuery = '';
@@ -1083,7 +1282,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }, 600);
         })
         .catch(err => {
-          icon.classList.remove('rotating');
+          if (icon) icon.classList.remove('rotating');
           showToast("Server Connection Error", "Check XAMPP services.", "danger");
           console.error(err);
         });
@@ -1187,39 +1386,135 @@ document.addEventListener('DOMContentLoaded', () => {
       btnLogoutSidebar.addEventListener('click', triggerLogout);
     }
 
-    // Check if ?view=cpu_ping is in the URL search params
+    // Check if ?view=edit_history is in URL search params
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('view') === 'cpu_ping') {
-      const pingBanner = document.getElementById('cpu-ping-banner');
-      const customTable = document.querySelector('.table-custom');
-      if (pingBanner) pingBanner.style.display = 'flex';
-      if (customTable) customTable.classList.add('table-cpu-ping-view');
+    const isHistoryView = urlParams.get('view') === 'edit_history';
 
+    if (isHistoryView) {
+      const historyBanner = document.getElementById('edit-history-banner');
+      if (historyBanner) historyBanner.style.display = 'flex';
+
+      const assetsTable = document.getElementById('assets-table');
+      if (assetsTable) assetsTable.style.display = 'none';
+
+      const historyTable = document.getElementById('history-table');
+      if (historyTable) historyTable.style.display = 'table';
+
+      // Hide CRUD actions
+      const btnAdd = document.getElementById('btn-add');
+      const btnEdit = document.getElementById('btn-edit');
+      const btnDelete = document.getElementById('btn-delete');
       const btnUpdateStatus = document.getElementById('btn-update-status');
+
+      if (btnAdd) btnAdd.style.display = 'none';
+      if (btnEdit) btnEdit.style.display = 'none';
+      if (btnDelete) btnDelete.style.display = 'none';
       if (btnUpdateStatus) btnUpdateStatus.style.display = 'none';
 
-      const btnClearCpuView = document.getElementById('btn-clear-cpu-view');
-      if (btnClearCpuView) {
-        btnClearCpuView.addEventListener('click', () => {
+      // Switch filters toolbar search
+      const assetFiltersPanel = document.getElementById('asset-filters-panel');
+      const historyFiltersPanel = document.getElementById('history-filters-panel');
+      const toolbarPageTitle = document.getElementById('toolbar-page-title');
+
+      if (assetFiltersPanel) assetFiltersPanel.style.display = 'none';
+      if (historyFiltersPanel) historyFiltersPanel.style.display = 'flex';
+      if (toolbarPageTitle) toolbarPageTitle.textContent = "Modification History Log";
+
+      // Hide filters drawer
+      const filterDrawer = document.getElementById('filter-drawer');
+      if (filterDrawer) filterDrawer.style.display = 'none';
+
+      // Swap export buttons
+      const btnExportCsv = document.getElementById('btn-export-csv');
+      const btnExportHistoryCsv = document.getElementById('btn-export-history-csv');
+      if (btnExportCsv) btnExportCsv.style.display = 'none';
+      if (btnExportHistoryCsv) btnExportHistoryCsv.style.display = 'inline-block';
+
+      // Clear history view banner button
+      const btnClearHistoryView = document.getElementById('btn-clear-history-view');
+      if (btnClearHistoryView) {
+        btnClearHistoryView.addEventListener('click', () => {
           window.location.href = 'dashboard.php';
         });
       }
-    }
 
-    // Initial assets load on document ready
-    fetchAssetsFromDatabase();
+      // Search input handler
+      const historySearchInput = document.getElementById('history-search-input');
+      if (historySearchInput) {
+        historySearchInput.addEventListener('input', (e) => {
+          historySearchQuery = e.target.value.trim().toLowerCase();
+          renderHistoryTable();
+        });
+      }
 
-    // Live Monitoring background timer: automatically pings all visible hostnames every 30 seconds
-    setInterval(() => {
-      const pingButtons = document.querySelectorAll('.btn-ping-monitor');
-      pingButtons.forEach((btn, index) => {
-        if (typeof btn.doPing === 'function') {
-          setTimeout(() => {
-            btn.doPing(false);
-          }, index * 100);
-        }
+      // Export CSV handler
+      if (btnExportHistoryCsv) {
+        btnExportHistoryCsv.addEventListener('click', () => {
+          exportHistoryCSV();
+        });
+      }
+
+      // Sorting handler for history
+      document.querySelectorAll('th[data-sort-history]').forEach(th => {
+        th.addEventListener('click', () => {
+          const dbCol = th.getAttribute('data-sort-history');
+
+          document.querySelectorAll('th[data-sort-history]').forEach(header => {
+            header.classList.remove('sorted-asc', 'sorted-desc');
+            const ind = header.querySelector('.sort-indicator-history');
+            if (ind) ind.textContent = '';
+          });
+
+          if (historySortColumn === dbCol) {
+            historySortOrder = historySortOrder === 'asc' ? 'desc' : 'asc';
+          } else {
+            historySortColumn = dbCol;
+            historySortOrder = 'asc';
+          }
+
+          th.classList.add(historySortOrder === 'asc' ? 'sorted-asc' : 'sorted-desc');
+          const ind = th.querySelector('.sort-indicator-history');
+          if (ind) ind.textContent = historySortOrder === 'asc' ? ' ▲' : ' ▼';
+          renderHistoryTable();
+        });
       });
-    }, 30000); // 30 seconds
+
+      // Initial history load
+      fetchHistoryFromDatabase();
+    } else {
+      // Check if ?view=cpu_ping is in the URL search params
+      if (urlParams.get('view') === 'cpu_ping') {
+        const pingBanner = document.getElementById('cpu-ping-banner');
+        const customTable = document.querySelector('.table-custom');
+        if (pingBanner) pingBanner.style.display = 'flex';
+        if (customTable) customTable.classList.add('table-cpu-ping-view');
+
+        const btnUpdateStatus = document.getElementById('btn-update-status');
+        if (btnUpdateStatus) btnUpdateStatus.style.display = 'none';
+
+        const btnClearCpuView = document.getElementById('btn-clear-cpu-view');
+        if (btnClearCpuView) {
+          btnClearCpuView.addEventListener('click', () => {
+            window.location.href = 'dashboard.php';
+          });
+        }
+      }
+
+      // Initial assets load on document ready
+      fetchAssetsFromDatabase();
+
+      // Live Monitoring background timer: automatically pings all visible hostnames every 30 seconds
+      setInterval(() => {
+        const pingButtons = document.querySelectorAll('.btn-ping-monitor');
+        pingButtons.forEach((btn, index) => {
+          if (typeof btn.doPing === 'function') {
+            setTimeout(() => {
+              btn.doPing(false);
+            }, index * 100);
+          }
+        });
+      }, 30000); // 30 seconds
+    }
 
   }
 

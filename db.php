@@ -24,7 +24,19 @@ function getDBConnection() {
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES   => false,
         ];
-        return new PDO($dsn, DB_USER, DB_PASS, $options);
+        $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
+
+        // Auto-create edit_history table if it does not exist
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `edit_history` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `station_number` INT NOT NULL,
+            `action_type` VARCHAR(50) NOT NULL,
+            `username` VARCHAR(50) NOT NULL,
+            `details` TEXT NOT NULL,
+            `changed_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        return $pdo;
     } catch (PDOException $e) {
         // If the database connection fails, return a JSON error to the AJAX front-end
         header('Content-Type: application/json');

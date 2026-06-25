@@ -5,6 +5,7 @@ if (!isset($_SESSION['aether_session_token'])) {
     header("Location: index.php");
     exit;
 }
+session_write_close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -62,8 +63,8 @@ if (!isset($_SESSION['aether_session_token'])) {
 
     <!-- Search & Filters Toolbar Panel -->
     <div class="toolbar-search-filter">
-      <div class="toolbar-title">Workspace Inventory Records</div>
-      <div class="filter-panel">
+      <div class="toolbar-title" id="toolbar-page-title">Workspace Inventory Records</div>
+      <div class="filter-panel" id="asset-filters-panel">
         <div class="search-box-wrapper">
           <input type="text" placeholder="Search..." class="search-box-input" id="search-input">
           <i data-lucide="search" class="search-icon" style="width: 15px; height: 15px;"></i>
@@ -73,6 +74,12 @@ if (!isset($_SESSION['aether_session_token'])) {
           <span>Filters</span>
           <span class="active-filter-badge" id="active-filter-count" style="display: none;">0</span>
         </button>
+      </div>
+      <div class="filter-panel" id="history-filters-panel" style="display: none;">
+        <div class="search-box-wrapper">
+          <input type="text" placeholder="Search history..." class="search-box-input" id="history-search-input">
+          <i data-lucide="search" class="search-icon" style="width: 15px; height: 15px;"></i>
+        </div>
       </div>
     </div>
 
@@ -140,20 +147,21 @@ if (!isset($_SESSION['aether_session_token'])) {
       </div>
     </div>
 
-    <!-- CPU Ping Monitoring View Active Banner -->
-    <div class="cpu-ping-banner" id="cpu-ping-banner" style="display: none; background: #E8F4FD; border: 1px solid #B8DBF5; border-radius: 4px; padding: 12px 20px; margin: 10px 20px; align-items: center; justify-content: space-between; font-size: 14px; color: #1C6091; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+
+    <!-- Edit History View Active Banner -->
+    <div class="edit-history-banner" id="edit-history-banner" style="display: none; background: #E2ECEB; border: 1px solid #A8D8D5; border-radius: 4px; padding: 12px 20px; margin: 10px 20px; align-items: center; justify-content: space-between; font-size: 14px; color: #003D5B; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
       <div style="display: flex; align-items: center; gap: 8px;">
-        <i data-lucide="activity" style="width: 16px; height: 16px; color: #1C6091;"></i>
-        <span><strong>CPU Ping Monitoring View Active</strong>: Hiding other columns to focus on station connectivity.</span>
+        <i data-lucide="history" style="width: 16px; height: 16px; color: #003D5B;"></i>
+        <span><strong>Asset Edit History Log Active</strong>: Reviewing all previous modifications, additions, and deletions.</span>
       </div>
-      <button class="btn-clear-cpu-view" id="btn-clear-cpu-view" style="background: #005A9E; border: none; color: white; padding: 6px 14px; border-radius: 4px; font-weight: 600; cursor: pointer; transition: all 0.15s ease; font-size: 12px;" onmouseover="this.style.background='#004578'" onmouseout="this.style.background='#005A9E'">
-        Show Full Inventory
+      <button class="btn-clear-history-view" id="btn-clear-history-view" style="background: #003D5B; border: none; color: white; padding: 6px 14px; border-radius: 4px; font-weight: 600; cursor: pointer; transition: all 0.15s ease; font-size: 12px;" onmouseover="this.style.background='#002535'" onmouseout="this.style.background='#003D5B'">
+        Show Asset Grid
       </button>
     </div>
 
     <!-- Main Table Workspace -->
     <main class="table-workspace">
-      <table class="table-custom">
+      <table class="table-custom" id="assets-table">
         <thead>
           <tr>
             <th data-sort="Station_Number" class="cpu-ping-visible">Station No.<span class="sort-indicator"></span></th>
@@ -182,11 +190,27 @@ if (!isset($_SESSION['aether_session_token'])) {
           <!-- Populated dynamically by JavaScript API fetch -->
         </tbody>
       </table>
+
+      <!-- History Log Table -->
+      <table class="table-custom" id="history-table" style="display: none;">
+        <thead>
+          <tr>
+            <th data-sort-history="changed_at" class="sorted-desc">Date & Time<span class="sort-indicator-history"> ▼</span></th>
+            <th data-sort-history="station_number">Station No.<span class="sort-indicator-history"></span></th>
+            <th data-sort-history="action_type">Action Type<span class="sort-indicator-history"></span></th>
+            <th data-sort-history="username">Operator<span class="sort-indicator-history"></span></th>
+            <th data-sort-history="details">Modification Details<span class="sort-indicator-history"></span></th>
+          </tr>
+        </thead>
+        <tbody id="history-table-body">
+          <!-- Populated dynamically by JS -->
+        </tbody>
+      </table>
       
       <!-- Empty State indicator -->
       <div class="table-empty-state" id="table-empty-message" style="display: none;">
         <i data-lucide="inbox" style="width: 48px; height: 48px; margin: 0 auto;"></i>
-        <p>No matching asset records found.</p>
+        <p id="empty-message-text">No matching asset records found.</p>
       </div>
     </main>
 
@@ -205,6 +229,7 @@ if (!isset($_SESSION['aether_session_token'])) {
 
       <div class="footer-right">
         <button class="btn-footer" id="btn-export-csv">Export CSV</button>
+        <button class="btn-footer" id="btn-export-history-csv" style="display: none;">Export History CSV</button>
       </div>
     </footer>
 

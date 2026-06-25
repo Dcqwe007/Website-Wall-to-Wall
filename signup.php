@@ -4,6 +4,7 @@ if (isset($_SESSION['aether_session_token'])) {
     header("Location: home.php");
     exit;
 }
+session_write_close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
