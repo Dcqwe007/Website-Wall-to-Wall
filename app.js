@@ -451,6 +451,31 @@ document.addEventListener('DOMContentLoaded', () => {
       updateActiveFilterBadge();
     }
 
+    // Dynamically sync edit and add modal program options with custom values in the database
+    function syncProgramDropdowns() {
+      const addProgramSelect = document.getElementById('add-program');
+      const editProgramSelect = document.getElementById('edit-program');
+      if (!addProgramSelect || !editProgramSelect) return;
+
+      // Extract unique non-empty program values from assetsList
+      const dbPrograms = [...new Set(assetsList.map(a => a.Program).filter(p => p && p.trim() !== ''))];
+
+      const updateSelectOptions = (selectEl) => {
+        const existingValues = Array.from(selectEl.options).map(opt => opt.value);
+        dbPrograms.forEach(prog => {
+          if (!existingValues.includes(prog)) {
+            const opt = document.createElement('option');
+            opt.value = prog;
+            opt.textContent = prog;
+            selectEl.appendChild(opt);
+          }
+        });
+      };
+
+      updateSelectOptions(addProgramSelect);
+      updateSelectOptions(editProgramSelect);
+    }
+
     // Load assets from database API
     function fetchAssetsFromDatabase() {
       fetch('api.php?action=fetch')
@@ -467,6 +492,7 @@ document.addEventListener('DOMContentLoaded', () => {
               }
             });
             populateFilterDropdowns();
+            syncProgramDropdowns();
             renderTable();
           } else {
             showToast("Fetch Error", res.message || "Failed to fetch assets.", "danger");

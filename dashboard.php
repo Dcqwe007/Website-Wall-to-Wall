@@ -321,6 +321,7 @@ session_write_close();
               <option value="UHG">UHG</option>
               <option value="Highmark">Highmark</option>
               <option value="Xerox">Xerox</option>
+              <option value="Nike">Nike</option>
             </select>
           </div>
           <div class="form-group">
@@ -428,6 +429,7 @@ session_write_close();
               <option value="UHG">UHG</option>
               <option value="Highmark">Highmark</option>
               <option value="Xerox">Xerox</option>
+              <option value="Nike">Nike</option>
             </select>
           </div>
           <div class="form-group">
