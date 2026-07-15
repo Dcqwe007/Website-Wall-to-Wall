@@ -338,6 +338,45 @@ try {
                 'old_Station_Number'  => $oldStation
             ]);
 
+            // Track replaced components and auto-insert into inventory
+            if ($oldAsset) {
+                $components = [
+                    'CPU'       => ['Model' => 'CPU_Model', 'Serial' => 'CPU_Serial', 'Brand' => 'CPU_Brand'],
+                    'Monitor 1' => ['Model' => 'Monitor1_Model', 'Serial' => 'Monitor1_Serial', 'Brand' => 'Monitor1_Brand'],
+                    'Monitor 2' => ['Model' => 'Monitor2_Model', 'Serial' => 'Monitor2_Serial', 'Brand' => 'Monitor2_Brand'],
+                    'Monitor 3' => ['Model' => 'Monitor3_Model', 'Serial' => 'Monitor3_Serial', 'Brand' => 'Monitor3_Brand']
+                ];
+
+                foreach ($components as $type => $fields) {
+                    $oldSerial = isset($oldAsset[$fields['Serial']]) ? trim($oldAsset[$fields['Serial']]) : '';
+                    $newSerial = isset($inputData[$fields['Serial']]) ? trim($inputData[$fields['Serial']]) : '';
+                    $oldModel  = isset($oldAsset[$fields['Model']]) ? trim($oldAsset[$fields['Model']]) : '';
+                    $newModel  = isset($inputData[$fields['Model']]) ? trim($inputData[$fields['Model']]) : '';
+                    $oldBrand  = isset($oldAsset[$fields['Brand']]) ? trim($oldAsset[$fields['Brand']]) : '';
+                    $newBrand  = isset($inputData[$fields['Brand']]) ? trim($inputData[$fields['Brand']]) : '';
+
+                    $hasChanged = ($oldSerial !== $newSerial) || ($oldModel !== $newModel) || ($oldBrand !== $newBrand);
+                    $wasNotEmpty = ($oldSerial !== '') || ($oldModel !== '') || ($oldBrand !== '');
+
+                    if ($hasChanged && $wasNotEmpty) {
+                        // Map Monitor 1, 2, 3 to 'Monitor'
+                        $mappedType = (strpos($type, 'Monitor') === 0) ? 'Monitor' : 'CPU';
+                        $serialToInsert = ($oldSerial !== '') ? $oldSerial : 'N/A';
+
+                        $invStmt = $db->prepare("INSERT INTO inventory (asset_type, model, serial_number, brand, previous_station, username, removed_at, status) 
+                                                 VALUES (:type, :model, :serial, :brand, :station, :username, NOW(), 'On Inventory')");
+                        $invStmt->execute([
+                            'type'     => $mappedType,
+                            'model'    => $oldModel,
+                            'serial'   => $serialToInsert,
+                            'brand'    => $oldBrand,
+                            'station'  => $oldStation,
+                            'username' => $_SESSION['aether_username'] ?? 'System'
+                        ]);
+                    }
+                }
+            }
+
             // Compare fields to log changes
             $changes = [];
             if ($oldAsset) {
@@ -410,111 +449,7 @@ try {
             echo json_encode(['success' => true]);
             break;
 
-        // --------------------------------------------------------
-        // ACTION: PING CPU IP ADDRESS
-        // --------------------------------------------------------
-        case 'ping':
-            if (!isset($_SESSION['aether_session_token'])) {
-                http_response_code(401);
-                echo json_encode(['success' => false, 'message' => 'Unauthorized session access.']);
-                exit;
-            }
 
-            $host = trim($inputData['host'] ?? '');
-            if (empty($host)) {
-                echo json_encode(['success' => false, 'message' => 'Hostname or IP is empty.']);
-                exit;
-            }
-
-            // Simple validation of hostname or IP
-            if (!filter_var($host, FILTER_VALIDATE_IP) && !preg_match('/^[a-zA-Z0-9.-]+$/', $host)) {
-                echo json_encode(['success' => false, 'message' => 'Invalid hostname or IP address format.']);
-                exit;
-            }
-
-            // 1. Check if the target is the local machine (always online)
-            $isLocal = false;
-            $localHostname = gethostname();
-            if (
-                strcasecmp($host, 'localhost') === 0 ||
-                $host === '127.0.0.1' ||
-                $host === '::1' ||
-                ($localHostname && strcasecmp($host, $localHostname) === 0)
-            ) {
-                $isLocal = true;
-            }
-
-            if ($isLocal) {
-                echo json_encode(['success' => true, 'online' => true, 'time' => '<1 ms (Local)']);
-                exit;
-            }
-
-            // Determine target IP to test
-            $ip = $host;
-            $resolved = false;
-            if (filter_var($host, FILTER_VALIDATE_IP)) {
-                $resolved = true;
-            } else {
-                $dnsIp = gethostbyname($host);
-                if ($dnsIp !== $host) {
-                    $ip = $dnsIp;
-                    $resolved = true;
-                }
-            }
-
-            // If standard DNS lookup failed, try our NetBIOS resolution fallback
-            if (!$resolved) {
-                $netbiosIp = resolve_local_hostname($host);
-                if ($netbiosIp) {
-                    $ip = $netbiosIp;
-                    $resolved = true;
-                }
-            }
-
-            // 2. Execute system ICMP ping command on resolved IP/Host
-            $str = PHP_OS;
-            if (stristr($str, 'win')) {
-                $cmd = 'ping -n 1 -w 1000 ' . escapeshellarg($ip);
-            } else {
-                $cmd = 'ping -c 1 -W 1 ' . escapeshellarg($ip);
-            }
-
-            exec($cmd, $outcome, $status);
-
-            // Parse response time if possible
-            $timeMs = null;
-            if ($status === 0) {
-                foreach ($outcome as $line) {
-                    if (preg_match('/time[<=]([0-9.]+)\s*ms/i', $line, $matches)) {
-                        $timeMs = $matches[1] . ' ms';
-                        break;
-                    }
-                }
-                if (!$timeMs) {
-                    $timeMs = '<1 ms';
-                }
-                echo json_encode(['success' => true, 'online' => true, 'time' => $timeMs]);
-                exit;
-            }
-
-            // 3. Fallback TCP check (since Windows Firewall blocks ICMP by default on local network PCs)
-            $tcpOnline = false;
-            $ports = [135, 445, 80];
-            foreach ($ports as $port) {
-                $connection = @fsockopen($ip, $port, $errno, $errstr, 0.4);
-                if (is_resource($connection)) {
-                    fclose($connection);
-                    $tcpOnline = true;
-                    break;
-                }
-            }
-
-            if ($tcpOnline) {
-                echo json_encode(['success' => true, 'online' => true, 'time' => 'TCP Active']);
-            } else {
-                echo json_encode(['success' => true, 'online' => false, 'message' => 'Offline / Unreachable']);
-            }
-            break;
 
         // --------------------------------------------------------
         // ACTION: DELETE ASSET
@@ -605,6 +540,39 @@ try {
             $rows = $stmt->fetchAll();
 
             echo json_encode(['success' => true, 'data' => $rows]);
+            break;
+
+        // --------------------------------------------------------
+        // ACTION: FETCH HARDWARE INVENTORY
+        // --------------------------------------------------------
+        case 'inventory':
+            if (!isset($_SESSION['aether_session_token'])) {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized session access.']);
+                exit;
+            }
+
+            $stmt = $db->query("SELECT * FROM inventory ORDER BY removed_at DESC");
+            $rows = $stmt->fetchAll();
+
+            echo json_encode(['success' => true, 'data' => $rows]);
+            break;
+
+        // --------------------------------------------------------
+        // ACTION: DELETE/SCRAP HARDWARE INVENTORY ITEM
+        // --------------------------------------------------------
+        case 'delete_inventory':
+            if (!isset($_SESSION['aether_session_token'])) {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized session access.']);
+                exit;
+            }
+
+            $id = intval($inputData['id'] ?? 0);
+            $stmt = $db->prepare("DELETE FROM inventory WHERE id = :id");
+            $stmt->execute(['id' => $id]);
+
+            echo json_encode(['success' => true]);
             break;
 
         default:

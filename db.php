@@ -36,6 +36,19 @@ function getDBConnection() {
             `changed_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
+        // Auto-create inventory table if it does not exist
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `inventory` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `asset_type` VARCHAR(50) NOT NULL,
+            `model` VARCHAR(100) DEFAULT NULL,
+            `serial_number` VARCHAR(50) NOT NULL,
+            `brand` VARCHAR(100) DEFAULT NULL,
+            `previous_station` INT NOT NULL,
+            `username` VARCHAR(50) NOT NULL DEFAULT 'System',
+            `removed_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            `status` VARCHAR(50) DEFAULT 'On Inventory'
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
         return $pdo;
     } catch (PDOException $e) {
         // If the database connection fails, return a JSON error to the AJAX front-end

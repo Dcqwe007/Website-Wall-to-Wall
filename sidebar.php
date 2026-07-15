@@ -21,13 +21,14 @@ $currentPage = basename($_SERVER['PHP_SELF']);
       <i data-lucide="pie-chart" style="width: 16px; height: 16px;"></i>
       <span>Analytics</span>
     </a>
-    <a href="dashboard.php?view=cpu_ping" class="nav-item <?php echo ($currentPage == 'dashboard.php' && isset($_GET['view']) && $_GET['view'] == 'cpu_ping') ? 'active' : ''; ?>" id="nav-cpu-ping-monitoring">
-      <i data-lucide="activity" style="width: 16px; height: 16px;"></i>
-      <span>CPU Ping Monitoring</span>
-    </a>
+
     <a href="dashboard.php?view=edit_history" class="nav-item <?php echo ($currentPage == 'dashboard.php' && isset($_GET['view']) && $_GET['view'] == 'edit_history') ? 'active' : ''; ?>" id="nav-edit-history">
       <i data-lucide="history" style="width: 16px; height: 16px;"></i>
       <span>Edit History</span>
+    </a>
+    <a href="dashboard.php?view=inventory" class="nav-item <?php echo ($currentPage == 'dashboard.php' && isset($_GET['view']) && $_GET['view'] == 'inventory') ? 'active' : ''; ?>" id="nav-inventory">
+      <i data-lucide="archive" style="width: 16px; height: 16px;"></i>
+      <span>Inventory</span>
     </a>
   </nav>
   <div class="sidebar-footer">

@@ -77,3 +77,16 @@ CREATE TABLE IF NOT EXISTS `edit_history` (
   `changed_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- 4. Create the Replaced Components Inventory Table
+CREATE TABLE IF NOT EXISTS `inventory` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `asset_type` VARCHAR(50) NOT NULL,
+  `model` VARCHAR(100) DEFAULT NULL,
+  `serial_number` VARCHAR(50) NOT NULL,
+  `brand` VARCHAR(100) DEFAULT NULL,
+  `previous_station` INT NOT NULL,
+  `username` VARCHAR(50) NOT NULL DEFAULT 'System',
+  `removed_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `status` VARCHAR(50) DEFAULT 'On Inventory'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

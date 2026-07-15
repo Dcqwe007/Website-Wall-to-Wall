@@ -668,7 +668,7 @@ session_write_close();
               autocomplete="new-password"
             >
             <button type="button" class="btn-toggle-password" id="toggle-signup-pwd-btn" title="Toggle visibility">
-              <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <i data-lucide="eye" style="width: 17px; height: 17px;"></i>
             </button>
           </div>
         </div>
@@ -687,7 +687,7 @@ session_write_close();
               autocomplete="new-password"
             >
             <button type="button" class="btn-toggle-password" id="toggle-confirm-pwd-btn" title="Toggle visibility">
-              <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <i data-lucide="eye" style="width: 17px; height: 17px;"></i>
             </button>
           </div>
         </div>
@@ -712,6 +712,6 @@ session_write_close();
     </div>
   </div>
 
-  <script src="app.js?v=1.3"></script>
+  <script src="app.js?v=1.5"></script>
 </body>
 </html>

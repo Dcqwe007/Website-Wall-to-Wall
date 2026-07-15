@@ -315,6 +315,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let historySortOrder = 'desc';
     let historySearchQuery = '';
 
+    // Inventory states
+    let inventoryList = [];
+    let currentFilteredInventory = [];
+    let inventorySortColumn = 'removed_at';
+    let inventorySortOrder = 'desc';
+    let inventorySearchQuery = '';
+
     // Multi-faceted Filter States
     let selectedProgram = 'All';
     let selectedCpu = 'All';
@@ -666,6 +673,215 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast("CSV Compiled", "Download for 'it_wall_to_wall_history_export.csv' has started.", "success");
     }
 
+    // Load replaced hardware inventory from database API
+    function fetchInventoryFromDatabase() {
+      fetch('api.php?action=inventory')
+        .then(res => {
+          if (!res.ok) throw new Error("Unauthorized or server connection failure");
+          return res.json();
+        })
+        .then(res => {
+          if (res.success) {
+            inventoryList = res.data || [];
+            renderInventoryTable();
+          } else {
+            showToast("Fetch Error", res.message || "Failed to fetch hardware inventory.", "danger");
+          }
+        })
+        .catch(err => {
+          showToast("System Connection Error", "Could not connect to database API. Check XAMPP MySQL.", "danger");
+          console.error(err);
+        });
+    }
+
+    // Render hardware inventory table
+    function renderInventoryTable() {
+      const inventoryTableBody = document.getElementById('inventory-table-body');
+      const emptyMessage = document.getElementById('table-empty-message');
+      const emptyMessageText = document.getElementById('empty-message-text');
+      
+      if (!inventoryTableBody) return;
+      inventoryTableBody.innerHTML = '';
+
+      // Client side filters (Search inventory input)
+      let filtered = inventoryList.filter(item => {
+        if (inventorySearchQuery) {
+          const matchParts = [
+            item.removed_at,
+            item.asset_type,
+            item.model,
+            item.serial_number,
+            item.brand,
+            item.previous_station,
+            item.username,
+            item.status
+          ];
+          const matchStr = matchParts.map(val => (val !== null && val !== undefined) ? val.toString().toLowerCase() : '').join(' ');
+          return matchStr.includes(inventorySearchQuery);
+        }
+        return true;
+      });
+
+      // Client side sorting
+      filtered.sort((a, b) => {
+        let valA = a[inventorySortColumn];
+        let valB = b[inventorySortColumn];
+
+        if (inventorySortColumn === 'previous_station' || inventorySortColumn === 'id') {
+          valA = parseInt(valA) || 0;
+          valB = parseInt(valB) || 0;
+        } else {
+          valA = (valA || '').toString().toLowerCase();
+          valB = (valB || '').toString().toLowerCase();
+        }
+
+        if (valA < valB) return inventorySortOrder === 'asc' ? -1 : 1;
+        if (valA > valB) return inventorySortOrder === 'asc' ? 1 : -1;
+        return 0;
+      });
+
+      currentFilteredInventory = filtered;
+
+      // Render rows
+      if (filtered.length === 0) {
+        if (emptyMessage) emptyMessage.style.display = 'block';
+        if (emptyMessageText) emptyMessageText.textContent = "No inventory items found.";
+      } else {
+        if (emptyMessage) emptyMessage.style.display = 'none';
+
+        filtered.forEach(item => {
+          const tr = document.createElement('tr');
+
+          let badgeClass = 'badge-other';
+          if (item.status === 'On Inventory') badgeClass = 'badge-deployed';
+          else if (item.status === 'In Stock') badgeClass = 'badge-onsite';
+          else if (item.status === 'Scrapped') badgeClass = 'badge-pulled';
+
+          // Format date
+          let displayDate = item.removed_at;
+          try {
+            const dateObj = new Date(item.removed_at.replace(/-/g, '/'));
+            if (!isNaN(dateObj.getTime())) {
+              displayDate = dateObj.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+              });
+            }
+          } catch (e) {}
+
+          let displayAssetType = item.asset_type;
+          if (displayAssetType && displayAssetType.startsWith('Monitor')) {
+            displayAssetType = 'Monitor';
+          }
+
+          tr.innerHTML = `
+            <td style="font-family: monospace; font-size: 12.5px;">${displayDate}</td>
+            <td>Station ${item.previous_station}</td>
+            <td><strong>${displayAssetType}</strong></td>
+            <td>${item.brand || '-'}</td>
+            <td style="font-family: monospace; font-size: 12px; font-weight: 600;">${item.serial_number}</td>
+            <td>${item.username || 'System'}</td>
+            <td><span class="badge ${badgeClass}">${item.status}</span></td>
+            <td>
+              <button class="btn-scrap-inventory" data-id="${item.id}" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); cursor: pointer; color: #EF4444; padding: 4px 10px; border-radius: 4px; font-weight: 600; font-size: 11px; transition: all 0.15s ease;" onmouseover="this.style.background='rgba(239, 68, 68, 0.2)'" onmouseout="this.style.background='rgba(239, 68, 68, 0.1)'">
+                Scrap
+              </button>
+            </td>
+          `;
+
+          // Bind scrap action
+          const scrapBtn = tr.querySelector('.btn-scrap-inventory');
+          if (scrapBtn) {
+            scrapBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const id = scrapBtn.getAttribute('data-id');
+              if (confirm("Are you sure you want to permanently delete/scrap this item from the inventory?")) {
+                fetch('api.php?action=delete_inventory', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ id: parseInt(id) })
+                })
+                .then(res => res.json())
+                .then(data => {
+                  if (data.success) {
+                    showToast("Asset Scrapped", "Item removed from inventory.", "success");
+                    fetchInventoryFromDatabase();
+                  } else {
+                    showToast("Action Failed", "Could not remove item.", "danger");
+                  }
+                })
+                .catch(err => {
+                  showToast("Server Connection Error", "Check XAMPP connection.", "danger");
+                  console.error(err);
+                });
+              }
+            });
+          }
+
+          inventoryTableBody.appendChild(tr);
+        });
+      }
+
+      // Update stats text
+      if (statsText) {
+        statsText.innerHTML = `Total Inventory Items: <strong>${inventoryList.length}</strong> | Visible: <strong>${filtered.length}</strong>`;
+      }
+    }
+
+    // Export Inventory list to CSV
+    function exportInventoryCSV() {
+      const listToExport = currentFilteredInventory.length > 0 ? currentFilteredInventory : inventoryList;
+
+      if (listToExport.length === 0) {
+        showToast("Export Failed", "There are no inventory items to download.", "danger");
+        return;
+      }
+
+      const headers = ["ID", "Date Changed", "Station No.", "Asset Type", "Brand", "Serial Number", "Operator", "Status"];
+      let csvContent = headers.join(",") + "\r\n";
+
+      listToExport.forEach(item => {
+        let displayAssetType = item.asset_type;
+        if (displayAssetType && displayAssetType.startsWith('Monitor')) {
+          displayAssetType = 'Monitor';
+        }
+        const row = [
+          item.id,
+          item.removed_at,
+          item.previous_station,
+          displayAssetType,
+          item.brand || '',
+          item.serial_number,
+          item.username || 'System',
+          item.status
+        ].map(val => {
+          let str = (val !== null && val !== undefined) ? val.toString().replace(/"/g, '""') : '';
+          if (str.includes(',') || str.includes('\n') || str.includes('\r') || str.includes('"')) {
+            str = `"${str}"`;
+          }
+          return str;
+        });
+        csvContent += row.join(",") + "\r\n";
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", "it_wall_to_wall_inventory_export.csv");
+      document.body.appendChild(link);
+
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      showToast("CSV Compiled", "Download for 'it_wall_to_wall_inventory_export.csv' has started.", "success");
+    }
+
     /* ========================================================
        RENDER AND FILTER TABLE (Enterprise DataGridView Style)
        ======================================================== */
@@ -765,15 +981,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <td style="font-family: monospace; font-size: 12px;">${asset.CPU_Serial || '-'}</td>
             <td>${asset.CPU_Brand || '-'}</td>
             <td class="cpu-ping-visible hostname-column">
-              ${asset.Hostname ? `
-                <div class="hostname-monitor-container" style="display: flex; align-items: center; gap: 6px;">
-                  <span class="hostname-text" style="font-family: monospace; font-size: 12px; font-weight: 500;">${asset.Hostname}</span>
-                  <button class="btn-ping-monitor" data-host="${asset.Hostname}" title="Ping Host Status" style="background: rgba(34, 211, 238, 0.1); border: 1px solid rgba(34, 211, 238, 0.2); cursor: pointer; color: #22D3EE; padding: 3px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; transition: all 0.2s; outline: none; margin: 0;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none;"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                  </button>
-                  <span class="ping-status-indicator" style="width: 8px; height: 8px; border-radius: 50%; background-color: #9CA3AF; display: inline-block; cursor: help; flex-shrink: 0;" title="Not tested"></span>
-                </div>
-              ` : '<span style="color: #9CA3AF;">-</span>'}
+              ${asset.Hostname ? `<span style="font-family: monospace; font-size: 12px; font-weight: 500;">${asset.Hostname}</span>` : '<span style="color: #9CA3AF;">-</span>'}
             </td>
             <td>${asset.Monitor1_Model || '-'}</td>
             <td style="font-family: monospace; font-size: 12px;">${asset.Monitor1_Serial || '-'}</td>
@@ -791,93 +999,6 @@ document.addEventListener('DOMContentLoaded', () => {
             <td style="font-size: 11px; opacity: 0.75;">${asset.Created_Date || '-'}</td>
             <td style="font-size: 11px; color: #22D3EE; font-weight: 600;">${asset.Modified_Date || '-'}</td>
           `;
-
-          // Ping button handler
-          const pingBtn = tr.querySelector('.btn-ping-monitor');
-          if (pingBtn) {
-            const host = pingBtn.getAttribute('data-host');
-            const indicator = tr.querySelector('.ping-status-indicator');
-
-            // Define the ping execution function
-            const doPing = (showToastFlag = false) => {
-              // Show loading state
-              indicator.style.backgroundColor = '#F59E0B'; // Amber
-              indicator.setAttribute('title', 'Pinging...');
-              pingBtn.style.color = '#F59E0B';
-              pingBtn.style.borderColor = '#F59E0B';
-              pingBtn.style.backgroundColor = 'rgba(245, 158, 11, 0.1)';
-              
-              fetch('api.php?action=ping', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ host: host })
-              })
-              .then(res => res.json())
-              .then(data => {
-                if (data.success && data.online) {
-                  const successResult = { online: true, time: data.time || '1 ms', timestamp: Date.now() };
-                  pingStatusCache[host] = successResult;
-                  applyPingStatus(successResult, showToastFlag);
-                } else {
-                  const failResult = { online: false, time: data.message || 'Offline', timestamp: Date.now() };
-                  pingStatusCache[host] = failResult;
-                  applyPingStatus(failResult, showToastFlag);
-                }
-              })
-              .catch(err => {
-                const errResult = { online: false, time: 'Connection Error', timestamp: Date.now() };
-                pingStatusCache[host] = errResult;
-                applyPingStatus(errResult, showToastFlag);
-              });
-            };
-
-            // Helper to apply the visual ping status
-            const applyPingStatus = (result, showToastFlag = false) => {
-              if (result.online) {
-                indicator.style.backgroundColor = '#10B981'; // Green (PC is Open/On)
-                indicator.setAttribute('title', `Online (${result.time})`);
-                pingBtn.style.color = '#10B981';
-                pingBtn.style.borderColor = '#10B981';
-                pingBtn.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
-                if (showToastFlag) {
-                  showToast("Host Online", `Station ${asset.Station_Number} (${host}) responded. Latency: ${result.time}`, "success");
-                }
-              } else {
-                indicator.style.backgroundColor = '#EF4444'; // Red (PC is Off)
-                indicator.setAttribute('title', `Offline: ${result.time}`);
-                pingBtn.style.color = '#EF4444';
-                pingBtn.style.borderColor = '#EF4444';
-                pingBtn.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
-                if (showToastFlag) {
-                  showToast("Host Offline", `Station ${asset.Station_Number} (${host}) is offline / unreachable.`, "danger");
-                }
-              }
-            };
-
-            // Attach the function to the element for programmatic live monitoring
-            pingBtn.doPing = doPing;
-
-            // 1. Check if we have a fresh cached status (valid for 25 seconds during manual/reload refreshes)
-            const cache = pingStatusCache[host];
-            const isCacheFresh = cache && (Date.now() - cache.timestamp < 25000);
-
-            if (isCacheFresh) {
-              applyPingStatus(cache, false);
-            } else {
-              // Trigger automatic background ping with staggered delay
-              setTimeout(() => {
-                if (document.body.contains(tr)) {
-                  doPing(false);
-                }
-              }, index * 100);
-            }
-
-            // 2. Click handler for manual check (always forces live ping and updates cache)
-            pingBtn.addEventListener('click', (e) => {
-              e.stopPropagation(); // Stop row selection trigger
-              doPing(true);
-            });
-          }
 
           // Row click selection by Station_Number
           tr.addEventListener('click', (e) => {
@@ -1412,9 +1533,10 @@ document.addEventListener('DOMContentLoaded', () => {
       btnLogoutSidebar.addEventListener('click', triggerLogout);
     }
 
-    // Check if ?view=edit_history is in URL search params
+    // Check if ?view=edit_history or view=inventory is in URL search params
     const urlParams = new URLSearchParams(window.location.search);
     const isHistoryView = urlParams.get('view') === 'edit_history';
+    const isInventoryView = urlParams.get('view') === 'inventory';
 
     if (isHistoryView) {
       const historyBanner = document.getElementById('edit-history-banner');
@@ -1431,11 +1553,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const btnEdit = document.getElementById('btn-edit');
       const btnDelete = document.getElementById('btn-delete');
       const btnUpdateStatus = document.getElementById('btn-update-status');
+      const btnGotoInventory = document.getElementById('btn-goto-inventory');
 
       if (btnAdd) btnAdd.style.display = 'none';
       if (btnEdit) btnEdit.style.display = 'none';
       if (btnDelete) btnDelete.style.display = 'none';
       if (btnUpdateStatus) btnUpdateStatus.style.display = 'none';
+      if (btnGotoInventory) btnGotoInventory.style.display = 'none';
 
       // Switch filters toolbar search
       const assetFiltersPanel = document.getElementById('asset-filters-panel');
@@ -1507,39 +1631,109 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Initial history load
       fetchHistoryFromDatabase();
-    } else {
-      // Check if ?view=cpu_ping is in the URL search params
-      if (urlParams.get('view') === 'cpu_ping') {
-        const pingBanner = document.getElementById('cpu-ping-banner');
-        const customTable = document.querySelector('.table-custom');
-        if (pingBanner) pingBanner.style.display = 'flex';
-        if (customTable) customTable.classList.add('table-cpu-ping-view');
+    } else if (isInventoryView) {
+      const inventoryBanner = document.getElementById('inventory-banner');
+      if (inventoryBanner) inventoryBanner.style.display = 'flex';
 
-        const btnUpdateStatus = document.getElementById('btn-update-status');
-        if (btnUpdateStatus) btnUpdateStatus.style.display = 'none';
+      const assetsTable = document.getElementById('assets-table');
+      if (assetsTable) assetsTable.style.display = 'none';
 
-        const btnClearCpuView = document.getElementById('btn-clear-cpu-view');
-        if (btnClearCpuView) {
-          btnClearCpuView.addEventListener('click', () => {
-            window.location.href = 'dashboard.php';
+      const inventoryTable = document.getElementById('inventory-table');
+      if (inventoryTable) inventoryTable.style.display = 'table';
+
+      // Hide CRUD actions
+      const btnAdd = document.getElementById('btn-add');
+      const btnEdit = document.getElementById('btn-edit');
+      const btnDelete = document.getElementById('btn-delete');
+      const btnUpdateStatus = document.getElementById('btn-update-status');
+      const btnGotoInventory = document.getElementById('btn-goto-inventory');
+
+      if (btnAdd) btnAdd.style.display = 'none';
+      if (btnEdit) btnEdit.style.display = 'none';
+      if (btnDelete) btnDelete.style.display = 'none';
+      if (btnUpdateStatus) btnUpdateStatus.style.display = 'none';
+      if (btnGotoInventory) btnGotoInventory.style.display = 'none';
+
+      // Switch filters toolbar search
+      const assetFiltersPanel = document.getElementById('asset-filters-panel');
+      const inventoryFiltersPanel = document.getElementById('inventory-filters-panel');
+      const toolbarPageTitle = document.getElementById('toolbar-page-title');
+
+      if (assetFiltersPanel) assetFiltersPanel.style.display = 'none';
+      if (inventoryFiltersPanel) inventoryFiltersPanel.style.display = 'flex';
+      if (toolbarPageTitle) toolbarPageTitle.textContent = "Replaced Components Inventory";
+
+      // Hide filters drawer
+      const filterDrawer = document.getElementById('filter-drawer');
+      if (filterDrawer) filterDrawer.style.display = 'none';
+
+      // Swap export buttons
+      const btnExportCsv = document.getElementById('btn-export-csv');
+      const btnExportInventoryCsv = document.getElementById('btn-export-inventory-csv');
+      if (btnExportCsv) btnExportCsv.style.display = 'none';
+      if (btnExportInventoryCsv) btnExportInventoryCsv.style.display = 'inline-block';
+
+      // Clear inventory view banner button
+      const btnClearInventoryView = document.getElementById('btn-clear-inventory-view');
+      if (btnClearInventoryView) {
+        btnClearInventoryView.addEventListener('click', () => {
+          window.location.href = 'dashboard.php';
+        });
+      }
+
+      // Search input handler
+      const inventorySearchInput = document.getElementById('inventory-search-input');
+      if (inventorySearchInput) {
+        inventorySearchInput.addEventListener('input', (e) => {
+          inventorySearchQuery = e.target.value.trim().toLowerCase();
+          renderInventoryTable();
+        });
+      }
+
+      // Export CSV handler
+      if (btnExportInventoryCsv) {
+        btnExportInventoryCsv.addEventListener('click', () => {
+          exportInventoryCSV();
+        });
+      }
+
+      // Sorting handler for inventory
+      document.querySelectorAll('th[data-sort-inventory]').forEach(th => {
+        th.addEventListener('click', () => {
+          const dbCol = th.getAttribute('data-sort-inventory');
+
+          document.querySelectorAll('th[data-sort-inventory]').forEach(header => {
+            header.classList.remove('sorted-asc', 'sorted-desc');
+            const ind = header.querySelector('.sort-indicator-inventory');
+            if (ind) ind.textContent = '';
           });
-        }
+
+          if (inventorySortColumn === dbCol) {
+            inventorySortOrder = inventorySortOrder === 'asc' ? 'desc' : 'asc';
+          } else {
+            inventorySortColumn = dbCol;
+            inventorySortOrder = 'asc';
+          }
+
+          th.classList.add(inventorySortOrder === 'asc' ? 'sorted-asc' : 'sorted-desc');
+          const ind = th.querySelector('.sort-indicator-inventory');
+          if (ind) ind.textContent = inventorySortOrder === 'asc' ? ' ▲' : ' ▼';
+          renderInventoryTable();
+        });
+      });
+
+      // Initial inventory load
+      fetchInventoryFromDatabase();
+    } else {
+      const btnGotoInventory = document.getElementById('btn-goto-inventory');
+      if (btnGotoInventory) {
+        btnGotoInventory.addEventListener('click', () => {
+          window.location.href = 'dashboard.php?view=inventory';
+        });
       }
 
       // Initial assets load on document ready
       fetchAssetsFromDatabase();
-
-      // Live Monitoring background timer: automatically pings all visible hostnames every 30 seconds
-      setInterval(() => {
-        const pingButtons = document.querySelectorAll('.btn-ping-monitor');
-        pingButtons.forEach((btn, index) => {
-          if (typeof btn.doPing === 'function') {
-            setTimeout(() => {
-              btn.doPing(false);
-            }, index * 100);
-          }
-        });
-      }, 30000); // 30 seconds
     }
 
   }

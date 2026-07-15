@@ -58,6 +58,7 @@ session_write_close();
         <button class="btn-action" id="btn-add">Add</button>
         <button class="btn-action" id="btn-edit" disabled>Edit</button>
         <button class="btn-action" id="btn-update-status" disabled>Update Status</button>
+        <button class="btn-action" id="btn-goto-inventory" style="background-color: #003D5B; color: #FFFFFF; border-color: #003D5B; opacity: 1; font-weight: 600; padding: 6px 14px; border-radius: 4px; cursor: pointer;">Inventory</button>
       </div>
     </header>
 
@@ -78,6 +79,12 @@ session_write_close();
       <div class="filter-panel" id="history-filters-panel" style="display: none;">
         <div class="search-box-wrapper">
           <input type="text" placeholder="Search history..." class="search-box-input" id="history-search-input">
+          <i data-lucide="search" class="search-icon" style="width: 15px; height: 15px;"></i>
+        </div>
+      </div>
+      <div class="filter-panel" id="inventory-filters-panel" style="display: none;">
+        <div class="search-box-wrapper">
+          <input type="text" placeholder="Search inventory..." class="search-box-input" id="inventory-search-input">
           <i data-lucide="search" class="search-icon" style="width: 15px; height: 15px;"></i>
         </div>
       </div>
@@ -159,6 +166,17 @@ session_write_close();
       </button>
     </div>
 
+    <!-- Replaced Components Inventory View Active Banner -->
+    <div class="edit-history-banner" id="inventory-banner" style="display: none; background: #FFF3CD; border: 1px solid #FFEBA8; border-radius: 4px; padding: 12px 20px; margin: 10px 20px; align-items: center; justify-content: space-between; font-size: 14px; color: #856404; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <i data-lucide="archive" style="width: 16px; height: 16px; color: #856404;"></i>
+        <span><strong>Replaced Components Inventory Active</strong>: Reviewing all individual CPUs/Monitors replaced during edits.</span>
+      </div>
+      <button class="btn-clear-history-view" id="btn-clear-inventory-view" style="background: #856404; border: none; color: white; padding: 6px 14px; border-radius: 4px; font-weight: 600; cursor: pointer; transition: all 0.15s ease; font-size: 12px;" onmouseover="this.style.background='#5a4303'" onmouseout="this.style.background='#856404'">
+        Show Asset Grid
+      </button>
+    </div>
+
     <!-- Main Table Workspace -->
     <main class="table-workspace">
       <table class="table-custom" id="assets-table">
@@ -206,6 +224,25 @@ session_write_close();
           <!-- Populated dynamically by JS -->
         </tbody>
       </table>
+
+      <!-- Hardware Inventory Table -->
+      <table class="table-custom" id="inventory-table" style="display: none; width: 100%;">
+        <thead>
+          <tr>
+            <th data-sort-inventory="removed_at" class="sorted-desc">Date Changed<span class="sort-indicator-inventory"> ▼</span></th>
+            <th data-sort-inventory="previous_station">Station No.<span class="sort-indicator-inventory"></span></th>
+            <th data-sort-inventory="asset_type">Asset Type<span class="sort-indicator-inventory"></span></th>
+            <th data-sort-inventory="brand">Brand<span class="sort-indicator-inventory"></span></th>
+            <th data-sort-inventory="serial_number">Serial Number<span class="sort-indicator-inventory"></span></th>
+            <th data-sort-inventory="username">Operator<span class="sort-indicator-inventory"></span></th>
+            <th data-sort-inventory="status">Status<span class="sort-indicator-inventory"></span></th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="inventory-table-body">
+          <!-- Populated dynamically by JS -->
+        </tbody>
+      </table>
       
       <!-- Empty State indicator -->
       <div class="table-empty-state" id="table-empty-message" style="display: none;">
@@ -230,6 +267,7 @@ session_write_close();
       <div class="footer-right">
         <button class="btn-footer" id="btn-export-csv">Export CSV</button>
         <button class="btn-footer" id="btn-export-history-csv" style="display: none;">Export History CSV</button>
+        <button class="btn-footer" id="btn-export-inventory-csv" style="display: none;">Export Inventory CSV</button>
       </div>
     </footer>
 
@@ -513,6 +551,6 @@ session_write_close();
     // Lucide Icon activation
     lucide.createIcons();
   </script>
-  <script src="app.js?v=1.4"></script>
+  <script src="app.js?v=1.5"></script>
 </body>
 </html>

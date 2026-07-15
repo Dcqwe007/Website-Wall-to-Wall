@@ -1642,21 +1642,3 @@ th.sorted-desc .sort-indicator::after {
   transform: translateY(-3px) scale(1.01);
   box-shadow: 0 6px 16px rgba(0, 59, 92, 0.08);
 }
-
-/* CPU Ping Monitoring View Overrides */
-.table-cpu-ping-view th:not(.cpu-ping-visible),
-.table-cpu-ping-view td:not(.cpu-ping-visible) {
-  display: none !important;
-}
-
-/* Hide Hostname / Monitor column by default in standard Wall to Wall */
-.table-custom th.hostname-column,
-.table-custom td.hostname-column {
-  display: none !important;
-}
-
-/* Show Hostname / Monitor column under CPU Ping Monitoring view */
-.table-cpu-ping-view th.hostname-column,
-.table-cpu-ping-view td.hostname-column {
-  display: table-cell !important;
-}
