@@ -186,7 +186,6 @@ session_write_close();
             <th data-sort="CPU_Model" class="cpu-ping-visible">CPU Model<span class="sort-indicator"></span></th>
             <th data-sort="CPU_Serial">CPU Serial<span class="sort-indicator"></span></th>
             <th data-sort="CPU_Brand">CPU Brand<span class="sort-indicator"></span></th>
-            <th data-sort="Hostname" class="cpu-ping-visible hostname-column">Hostname / Monitor<span class="sort-indicator"></span></th>
             <th data-sort="Monitor1_Model">Mon1 Model<span class="sort-indicator"></span></th>
             <th data-sort="Monitor1_Serial">Mon1 Serial<span class="sort-indicator"></span></th>
             <th data-sort="Monitor1_Brand">Mon1 Brand<span class="sort-indicator"></span></th>
@@ -310,10 +309,6 @@ session_write_close();
             <input type="text" class="modal-input-field" id="add-cpu-brand" placeholder="e.g. HP">
           </div>
           <div class="form-group">
-            <label class="form-label">Hostname</label>
-            <input type="text" class="modal-input-field" id="add-hostname" placeholder="e.g. DESKTOP-PC101">
-          </div>
-          <div class="form-group">
             <label class="form-label">Monitor 1 Model</label>
             <input type="text" class="modal-input-field" id="add-mon1-model" placeholder="e.g. HP P201">
           </div>
@@ -416,10 +411,6 @@ session_write_close();
           <div class="form-group">
             <label class="form-label">CPU Brand</label>
             <input type="text" class="modal-input-field" id="edit-cpu-brand">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Hostname</label>
-            <input type="text" class="modal-input-field" id="edit-hostname" placeholder="e.g. DESKTOP-PC101">
           </div>
           <div class="form-group">
             <label class="form-label">Monitor 1 Model</label>
@@ -551,6 +542,6 @@ session_write_close();
     // Lucide Icon activation
     lucide.createIcons();
   </script>
-  <script src="app.js?v=1.5"></script>
+  <script src="app.js?v=<?php echo time(); ?>"></script>
 </body>
 </html>

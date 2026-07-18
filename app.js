@@ -925,7 +925,6 @@ document.addEventListener('DOMContentLoaded', () => {
             asset.Asset_located_floor,
             asset.Site,
             asset.Current_Status,
-            asset.Hostname,
             asset.Created_Date,
             asset.Modified_Date
           ];
@@ -980,9 +979,6 @@ document.addEventListener('DOMContentLoaded', () => {
             <td class="cpu-ping-visible">${asset.CPU_Model || '-'}</td>
             <td style="font-family: monospace; font-size: 12px;">${asset.CPU_Serial || '-'}</td>
             <td>${asset.CPU_Brand || '-'}</td>
-            <td class="cpu-ping-visible hostname-column">
-              ${asset.Hostname ? `<span style="font-family: monospace; font-size: 12px; font-weight: 500;">${asset.Hostname}</span>` : '<span style="color: #9CA3AF;">-</span>'}
-            </td>
             <td>${asset.Monitor1_Model || '-'}</td>
             <td style="font-family: monospace; font-size: 12px;">${asset.Monitor1_Serial || '-'}</td>
             <td>${asset.Monitor1_Brand || '-'}</td>
@@ -1168,8 +1164,7 @@ document.addEventListener('DOMContentLoaded', () => {
         Program: document.getElementById('add-program').value,
         Asset_located_floor: document.getElementById('add-floor').value.trim(),
         Site: document.getElementById('add-site').value.trim(),
-        Current_Status: document.getElementById('add-status').value,
-        Hostname: document.getElementById('add-hostname').value.trim()
+        Current_Status: document.getElementById('add-status').value
       };
 
       fetch('api.php?action=add', {
@@ -1203,7 +1198,6 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('edit-cpu-model').value = asset.CPU_Model || '';
       document.getElementById('edit-cpu-serial').value = asset.CPU_Serial || '';
       document.getElementById('edit-cpu-brand').value = asset.CPU_Brand || '';
-      document.getElementById('edit-hostname').value = asset.Hostname || '';
       document.getElementById('edit-mon1-model').value = asset.Monitor1_Model || '';
       document.getElementById('edit-mon1-serial').value = asset.Monitor1_Serial || '';
       document.getElementById('edit-mon1-brand').value = asset.Monitor1_Brand || '';
@@ -1244,8 +1238,7 @@ document.addEventListener('DOMContentLoaded', () => {
         Program: document.getElementById('edit-program').value,
         Asset_located_floor: document.getElementById('edit-floor').value.trim(),
         Site: document.getElementById('edit-site').value.trim(),
-        Current_Status: document.getElementById('edit-status').value,
-        Hostname: document.getElementById('edit-hostname').value.trim()
+        Current_Status: document.getElementById('edit-status').value
       };
 
       fetch('api.php?action=edit', {
@@ -1446,7 +1439,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Headers matching the new schema
       const headers = [
-        "Station_Number", "CPU_Model", "CPU_Serial", "CPU_Brand", "Hostname",
+        "Station_Number", "CPU_Model", "CPU_Serial", "CPU_Brand",
         "Monitor1_Model", "Monitor1_Serial", "Monitor1_Brand",
         "Monitor2_Model", "Monitor2_Serial", "Monitor2_Brand",
         "Monitor3_Model", "Monitor3_Serial", "Monitor3_Brand",
@@ -1463,7 +1456,6 @@ document.addEventListener('DOMContentLoaded', () => {
           asset.CPU_Model || '',
           asset.CPU_Serial || '',
           asset.CPU_Brand || '',
-          asset.Hostname || '',
           asset.Monitor1_Model || '',
           asset.Monitor1_Serial || '',
           asset.Monitor1_Brand || '',

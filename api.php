@@ -26,35 +26,6 @@ $inputData = json_decode(file_get_contents('php://input'), true) ?? [];
 $db = getDBConnection();
 
 /**
- * Resolves local NetBIOS hostname to an IP address using ARP table and nbtstat
- */
-function resolve_local_hostname($hostname) {
-    $lines = [];
-    @exec('arp -a', $lines);
-    $ips = [];
-    foreach ($lines as $line) {
-        if (preg_match('/^\s*([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\s+/i', $line, $matches)) {
-            $ip = $matches[1];
-            if (preg_match('/\.1$/', $ip) || $ip === '127.0.0.1' || preg_match('/\.255$/', $ip)) {
-                continue;
-            }
-            $ips[] = $ip;
-        }
-    }
-    $ips = array_unique($ips);
-    foreach ($ips as $ip) {
-        $nbtOutput = [];
-        @exec('nbtstat -A ' . escapeshellarg($ip), $nbtOutput);
-        foreach ($nbtOutput as $nbtLine) {
-            if (stripos($nbtLine, $hostname) !== false) {
-                return $ip;
-            }
-        }
-    }
-    return null;
-}
-
-/**
  * Helper to log edit history events.
  */
 function log_edit_history($db, $station_number, $action_type, $details) {
@@ -69,6 +40,25 @@ function log_edit_history($db, $station_number, $action_type, $details) {
         ]);
     } catch (Exception $e) {
         error_log("Failed to log edit history: " . $e->getMessage());
+    }
+}
+
+/**
+ * Clean up inventory table by removing any assets that are currently active in the assets table.
+ */
+function cleanup_inventory($db) {
+    try {
+        $db->exec("DELETE FROM inventory WHERE serial_number IS NOT NULL AND serial_number != '' AND serial_number != 'N/A' AND serial_number IN (
+            SELECT CPU_Serial FROM assets WHERE CPU_Serial IS NOT NULL AND CPU_Serial != '' AND CPU_Serial != 'N/A'
+            UNION
+            SELECT Monitor1_Serial FROM assets WHERE Monitor1_Serial IS NOT NULL AND Monitor1_Serial != '' AND Monitor1_Serial != 'N/A'
+            UNION
+            SELECT Monitor2_Serial FROM assets WHERE Monitor2_Serial IS NOT NULL AND Monitor2_Serial != '' AND Monitor2_Serial != 'N/A'
+            UNION
+            SELECT Monitor3_Serial FROM assets WHERE Monitor3_Serial IS NOT NULL AND Monitor3_Serial != '' AND Monitor3_Serial != 'N/A'
+        )");
+    } catch (Exception $e) {
+        error_log("Failed to clean up inventory: " . $e->getMessage());
     }
 }
 
@@ -226,13 +216,13 @@ try {
                         Monitor1_Model, Monitor1_Serial, Monitor1_Brand,
                         Monitor2_Model, Monitor2_Serial, Monitor2_Brand,
                         Monitor3_Model, Monitor3_Serial, Monitor3_Brand,
-                        Program, Asset_located_floor, Site, Current_Status, Hostname, Created_Date
+                        Program, Asset_located_floor, Site, Current_Status, Created_Date
                     ) VALUES (
                         :Station_Number, :CPU_Model, :CPU_Serial, :CPU_Brand,
                         :Monitor1_Model, :Monitor1_Serial, :Monitor1_Brand,
                         :Monitor2_Model, :Monitor2_Serial, :Monitor2_Brand,
                         :Monitor3_Model, :Monitor3_Serial, :Monitor3_Brand,
-                        :Program, :Asset_located_floor, :Site, :Current_Status, :Hostname, NOW()
+                        :Program, :Asset_located_floor, :Site, :Current_Status, NOW()
                     )";
             
             $stmt = $db->prepare($sql);
@@ -253,14 +243,16 @@ try {
                 'Program'             => trim($inputData['Program'] ?? ''),
                 'Asset_located_floor' => trim($inputData['Asset_located_floor'] ?? ''),
                 'Site'                => trim($inputData['Site'] ?? ''),
-                'Current_Status'      => trim($inputData['Current_Status'] ?? 'Onsite Deployed'),
-                'Hostname'            => trim($inputData['Hostname'] ?? '')
+                'Current_Status'      => trim($inputData['Current_Status'] ?? 'Onsite Deployed')
             ]);
 
             // Log history event
             $cpuModel = trim($inputData['CPU_Model'] ?? '');
             $cpuSerial = trim($inputData['CPU_Serial'] ?? '');
             log_edit_history($db, $stationNum, 'Add', "Asset added (CPU Model: '$cpuModel', CPU Serial: '$cpuSerial')");
+
+            // Clean up active assets from inventory
+            cleanup_inventory($db);
 
             echo json_encode(['success' => true]);
             break;
@@ -293,6 +285,97 @@ try {
             $oldAssetStmt->execute(['station' => $oldStation]);
             $oldAsset = $oldAssetStmt->fetch();
 
+            // Track replaced components and check for swaps
+            $swappedSerials = [];
+            if ($oldAsset) {
+                $components = [
+                    'CPU'       => ['Model' => 'CPU_Model', 'Serial' => 'CPU_Serial', 'Brand' => 'CPU_Brand'],
+                    'Monitor 1' => ['Model' => 'Monitor1_Model', 'Serial' => 'Monitor1_Serial', 'Brand' => 'Monitor1_Brand'],
+                    'Monitor 2' => ['Model' => 'Monitor2_Model', 'Serial' => 'Monitor2_Serial', 'Brand' => 'Monitor2_Brand'],
+                    'Monitor 3' => ['Model' => 'Monitor3_Model', 'Serial' => 'Monitor3_Serial', 'Brand' => 'Monitor3_Brand']
+                ];
+
+                foreach ($components as $type => $fields) {
+                    $oldSerial = isset($oldAsset[$fields['Serial']]) ? trim($oldAsset[$fields['Serial']]) : '';
+                    $newSerial = isset($inputData[$fields['Serial']]) ? trim($inputData[$fields['Serial']]) : '';
+                    
+                    if ($oldSerial !== $newSerial && $newSerial !== '' && $newSerial !== 'N/A') {
+                        // Check if $newSerial is currently assigned to another station
+                        $swapCheck = $db->prepare("
+                            SELECT Station_Number, CPU_Model, CPU_Serial, CPU_Brand,
+                                   Monitor1_Model, Monitor1_Serial, Monitor1_Brand,
+                                   Monitor2_Model, Monitor2_Serial, Monitor2_Brand,
+                                   Monitor3_Model, Monitor3_Serial, Monitor3_Brand
+                            FROM assets 
+                            WHERE (CPU_Serial = :serial1 OR Monitor1_Serial = :serial2 OR Monitor2_Serial = :serial3 OR Monitor3_Serial = :serial4)
+                              AND Station_Number != :station
+                            LIMIT 1
+                        ");
+                        $swapCheck->execute([
+                            'serial1' => $newSerial,
+                            'serial2' => $newSerial,
+                            'serial3' => $newSerial,
+                            'serial4' => $newSerial,
+                            'station' => $oldStation
+                        ]);
+                        $otherStation = $swapCheck->fetch();
+                        
+                        if ($otherStation) {
+                            $otherStationNum = intval($otherStation['Station_Number']);
+                            
+                            // Find which column had the serial on the other station
+                            $otherColType = null;
+                            if (trim($otherStation['CPU_Serial']) === $newSerial) {
+                                $otherColType = 'CPU';
+                            } elseif (trim($otherStation['Monitor1_Serial']) === $newSerial) {
+                                $otherColType = 'Monitor 1';
+                            } elseif (trim($otherStation['Monitor2_Serial']) === $newSerial) {
+                                $otherColType = 'Monitor 2';
+                            } elseif (trim($otherStation['Monitor3_Serial']) === $newSerial) {
+                                $otherColType = 'Monitor 3';
+                            }
+                            
+                            if ($otherColType) {
+                                $otherFields = $components[$otherColType];
+                                
+                                // Swap: update the other station's matching component to the old component of the current station
+                                $oldModel = isset($oldAsset[$fields['Model']]) ? trim($oldAsset[$fields['Model']]) : '';
+                                $oldBrand = isset($oldAsset[$fields['Brand']]) ? trim($oldAsset[$fields['Brand']]) : '';
+                                
+                                $updateOther = $db->prepare("
+                                    UPDATE assets 
+                                    SET {$otherFields['Model']} = :model,
+                                        {$otherFields['Serial']} = :serial,
+                                        {$otherFields['Brand']} = :brand,
+                                        Modified_Date = NOW()
+                                    WHERE Station_Number = :station
+                                ");
+                                $updateOther->execute([
+                                    'model'   => $oldModel,
+                                    'serial'  => $oldSerial,
+                                    'brand'   => $oldBrand,
+                                    'station' => $otherStationNum
+                                ]);
+                                
+                                // Track as swapped so we don't insert into inventory
+                                if ($oldSerial !== '') {
+                                    $swappedSerials[] = $oldSerial;
+                                }
+                                $swappedSerials[] = $newSerial;
+                                
+                                // Log history for the other station
+                                log_edit_history(
+                                    $db, 
+                                    $otherStationNum, 
+                                    'Edit (Auto Swap)', 
+                                    "{$otherColType} swapped with Station {$oldStation} (Serial: '{$newSerial}' → '" . ($oldSerial === '' ? 'empty' : $oldSerial) . "')"
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+
             $sql = "UPDATE assets SET 
                         Station_Number       = :Station_Number,
                         CPU_Model            = :CPU_Model,
@@ -311,7 +394,6 @@ try {
                         Asset_located_floor  = :Asset_located_floor,
                         Site                 = :Site,
                         Current_Status       = :Current_Status,
-                        Hostname             = :Hostname,
                         Modified_Date        = NOW()
                     WHERE Station_Number = :old_Station_Number";
             
@@ -334,7 +416,6 @@ try {
                 'Asset_located_floor' => trim($inputData['Asset_located_floor'] ?? ''),
                 'Site'                => trim($inputData['Site'] ?? ''),
                 'Current_Status'      => trim($inputData['Current_Status'] ?? 'Onsite Deployed'),
-                'Hostname'            => trim($inputData['Hostname'] ?? ''),
                 'old_Station_Number'  => $oldStation
             ]);
 
@@ -358,7 +439,7 @@ try {
                     $hasChanged = ($oldSerial !== $newSerial) || ($oldModel !== $newModel) || ($oldBrand !== $newBrand);
                     $wasNotEmpty = ($oldSerial !== '') || ($oldModel !== '') || ($oldBrand !== '');
 
-                    if ($hasChanged && $wasNotEmpty) {
+                    if ($hasChanged && $wasNotEmpty && !in_array($oldSerial, $swappedSerials)) {
                         // Map Monitor 1, 2, 3 to 'Monitor'
                         $mappedType = (strpos($type, 'Monitor') === 0) ? 'Monitor' : 'CPU';
                         $serialToInsert = ($oldSerial !== '') ? $oldSerial : 'N/A';
@@ -385,7 +466,6 @@ try {
                     'CPU_Model'           => 'CPU Model',
                     'CPU_Serial'          => 'CPU Serial',
                     'CPU_Brand'           => 'CPU Brand',
-                    'Hostname'            => 'Hostname',
                     'Monitor1_Model'      => 'Monitor 1 Model',
                     'Monitor1_Serial'     => 'Monitor 1 Serial',
                     'Monitor1_Brand'      => 'Monitor 1 Brand',
@@ -417,6 +497,9 @@ try {
             }
             $details = count($changes) > 0 ? implode('; ', $changes) : 'No properties changed';
             log_edit_history($db, $newStation, 'Edit', $details);
+
+            // Clean up active assets from inventory
+            cleanup_inventory($db);
 
             echo json_encode(['success' => true]);
             break;
@@ -495,16 +578,16 @@ try {
             // Seed array
             // Seed array (includes local test IP / localhost address for demo purposes)
             $defaults = [
-                [101, 'ProDesk 600 G3', '3CQ7482Z7X', 'HP', 'EliteDisplay E232', '6CM7451FL8', 'HP', 'EliteDisplay E232', '6CM7451FL9', 'HP', 'EliteDisplay E232', '6CM7451FL0', 'HP', 'Macys', '3rd', 'UP2', 'Onsite Deployed', 'localhost', '2026-06-02 18:58:00', '2026-06-02 18:58:00'],
-                [102, 'EliteDesk 800 G4', '3CQ8120W2Y', 'HP', 'EliteDisplay E233', '6CM8190Y2B', 'HP', 'EliteDisplay E233', '6CM8190Y2C', 'HP', NULL, NULL, NULL, 'Macys', '4th', 'UP2', 'Onsite Deployed', 'desktop-kpi102', '2026-06-02 18:58:00', '2026-06-02 18:58:00'],
-                [103, 'OptiPlex 7050', 'CN07F10V3S', 'Dell', 'Dell P2417H', 'CN03V10W2R', 'Dell', 'Dell P2417H', 'CN03V10W2S', 'Dell', 'Dell P2417H', 'CN03V10W2T', 'Dell', 'Elevance', '4th', 'UP2', 'Onsite Deployed', 'desktop-kpi103', '2026-06-02 18:58:00', NULL],
-                [104, 'ThinkCentre M720q', 'PC09X12Y', 'Lenovo', 'ThinkVision T23d', 'V10Y7812', 'Lenovo', 'ThinkVision T23d', 'V10Y7813', 'Lenovo', NULL, NULL, NULL, 'Oscar', '2nd', 'UP2', 'Onsite Deployed', 'desktop-kpi104', '2026-06-02 18:58:00', NULL],
-                [105, 'ProDesk 600 G3', '3CQ7482Z8Y', 'HP', 'EliteDisplay E232', '6CM7451FM1', 'HP', 'EliteDisplay E232', '6CM7451FM2', 'HP', NULL, NULL, NULL, 'Elevance', '4th', 'UP2', 'Onsite Deployed', 'desktop-kpi105', '2026-06-02 18:58:00', NULL],
-                [106, 'EliteDesk 800 G4', '3CQ8120W3Z', 'HP', 'EliteDisplay E233', '6CM8190Y3D', 'HP', 'EliteDisplay E233', '6CM8190Y3E', 'HP', NULL, NULL, NULL, 'UHG', '4th', 'UP2', 'Onsite Deployed', 'desktop-kpi106', '2026-06-02 18:58:00', NULL],
-                [107, 'OptiPlex 7050', 'CN07F10V4T', 'Dell', 'Dell P2417H', 'CN03V10W3T', 'Dell', 'Dell P2417H', 'CN03V10W3U', 'Dell', NULL, NULL, NULL, 'Oscar', '2nd', 'UP2', 'Pulled Out', 'desktop-kpi107', '2026-06-02 18:58:00', '2026-06-02 11:46:00'],
-                [108, 'ThinkCentre M720q', 'PC09X13Z', 'Lenovo', 'ThinkVision T23d', 'V10Y7814', 'Lenovo', 'ThinkVision T23d', 'V10Y7815', 'Lenovo', NULL, NULL, NULL, 'Oscar', '2nd', 'UP2', 'Onsite Deployed', 'desktop-kpi108', '2026-06-02 18:58:00', NULL],
-                [109, 'ProDesk 600 G3', '3CQ7482Z9Z', 'HP', 'EliteDisplay E232', '6CM7451FM3', 'HP', 'EliteDisplay E232', '6CM7451FM4', 'HP', NULL, NULL, NULL, 'Highmark', 'Ground Floor', 'UP2', 'Onsite Deployed', 'localhost', '2026-06-02 18:58:00', '2026-06-02 16:01:00'],
-                [110, 'EliteDesk 800 G4', '3CQ8120W4A', 'HP', 'EliteDisplay E233', '6CM8190Y4F', 'HP', 'EliteDisplay E233', '6CM8190Y4G', 'HP', NULL, NULL, NULL, 'Highmark', 'Ground Floor', 'UP2', 'Onsite Deployed', 'desktop-kpi110', '2026-06-02 18:58:00', NULL]
+                [101, 'ProDesk 600 G3', '3CQ7482Z7X', 'HP', 'EliteDisplay E232', '6CM7451FL8', 'HP', 'EliteDisplay E232', '6CM7451FL9', 'HP', 'EliteDisplay E232', '6CM7451FL0', 'HP', 'Macys', '3rd', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', '2026-06-02 18:58:00'],
+                [102, 'EliteDesk 800 G4', '3CQ8120W2Y', 'HP', 'EliteDisplay E233', '6CM8190Y2B', 'HP', 'EliteDisplay E233', '6CM8190Y2C', 'HP', NULL, NULL, NULL, 'Macys', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', '2026-06-02 18:58:00'],
+                [103, 'OptiPlex 7050', 'CN07F10V3S', 'Dell', 'Dell P2417H', 'CN03V10W2R', 'Dell', 'Dell P2417H', 'CN03V10W2S', 'Dell', 'Dell P2417H', 'CN03V10W2T', 'Dell', 'Elevance', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
+                [104, 'ThinkCentre M720q', 'PC09X12Y', 'Lenovo', 'ThinkVision T23d', 'V10Y7812', 'Lenovo', 'ThinkVision T23d', 'V10Y7813', 'Lenovo', NULL, NULL, NULL, 'Oscar', '2nd', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
+                [105, 'ProDesk 600 G3', '3CQ7482Z8Y', 'HP', 'EliteDisplay E232', '6CM7451FM1', 'HP', 'EliteDisplay E232', '6CM7451FM2', 'HP', NULL, NULL, NULL, 'Elevance', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
+                [106, 'EliteDesk 800 G4', '3CQ8120W3Z', 'HP', 'EliteDisplay E233', '6CM8190Y3D', 'HP', 'EliteDisplay E233', '6CM8190Y3E', 'HP', NULL, NULL, NULL, 'UHG', '4th', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
+                [107, 'OptiPlex 7050', 'CN07F10V4T', 'Dell', 'Dell P2417H', 'CN03V10W3T', 'Dell', 'Dell P2417H', 'CN03V10W3U', 'Dell', NULL, NULL, NULL, 'Oscar', '2nd', 'UP2', 'Pulled Out', '2026-06-02 18:58:00', '2026-06-02 11:46:00'],
+                [108, 'ThinkCentre M720q', 'PC09X13Z', 'Lenovo', 'ThinkVision T23d', 'V10Y7814', 'Lenovo', 'ThinkVision T23d', 'V10Y7815', 'Lenovo', NULL, NULL, NULL, 'Oscar', '2nd', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL],
+                [109, 'ProDesk 600 G3', '3CQ7482Z9Z', 'HP', 'EliteDisplay E232', '6CM7451FM3', 'HP', 'EliteDisplay E232', '6CM7451FM4', 'HP', NULL, NULL, NULL, 'Highmark', 'Ground Floor', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', '2026-06-02 16:01:00'],
+                [110, 'EliteDesk 800 G4', '3CQ8120W4A', 'HP', 'EliteDisplay E233', '6CM8190Y4F', 'HP', 'EliteDisplay E233', '6CM8190Y4G', 'HP', NULL, NULL, NULL, 'Highmark', 'Ground Floor', 'UP2', 'Onsite Deployed', '2026-06-02 18:58:00', NULL]
             ];
 
             $insSql = "INSERT INTO assets (
@@ -512,8 +595,8 @@ try {
                             Monitor1_Model, Monitor1_Serial, Monitor1_Brand,
                             Monitor2_Model, Monitor2_Serial, Monitor2_Brand,
                             Monitor3_Model, Monitor3_Serial, Monitor3_Brand,
-                            Program, Asset_located_floor, Site, Current_Status, Hostname, Created_Date, Modified_Date
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                            Program, Asset_located_floor, Site, Current_Status, Created_Date, Modified_Date
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             
             $stmt = $db->prepare($insSql);
             foreach ($defaults as $row) {
@@ -551,6 +634,9 @@ try {
                 echo json_encode(['success' => false, 'message' => 'Unauthorized session access.']);
                 exit;
             }
+
+            // Clean up active assets from inventory before fetching
+            cleanup_inventory($db);
 
             $stmt = $db->query("SELECT * FROM inventory ORDER BY removed_at DESC");
             $rows = $stmt->fetchAll();

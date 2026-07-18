@@ -49,6 +49,13 @@ function getDBConnection() {
             `status` VARCHAR(50) DEFAULT 'On Inventory'
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
+        // Auto-drop Hostname column if it exists in assets table
+        try {
+            $pdo->exec("ALTER TABLE `assets` DROP COLUMN `Hostname` ");
+        } catch (PDOException $e) {
+            // Ignore error if column does not exist
+        }
+
         return $pdo;
     } catch (PDOException $e) {
         // If the database connection fails, return a JSON error to the AJAX front-end
