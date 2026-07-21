@@ -323,12 +323,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let inventorySearchQuery = '';
 
     // Multi-faceted Filter States
+    let selectedAsset = 'All';
     let selectedProgram = 'All';
-    let selectedCpu = 'All';
-    let selectedMonitor = 'All';
-    let selectedSerial = 'All';
     let selectedFloor = 'All';
-    let selectedModel = 'All';
     let selectedSite = 'All';
     let selectedStatus = 'All';
 
@@ -350,13 +347,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnClearFilters = document.getElementById('btn-clear-filters');
     const activeFilterCount = document.getElementById('active-filter-count');
 
-    // 8 Select Dropdowns
+    // Filter Select Dropdowns
+    const selectAsset = document.getElementById('select-asset');
     const selectProgram = document.getElementById('select-program');
-    const selectCpu = document.getElementById('select-cpu');
-    const selectMonitor = document.getElementById('select-monitor');
-    const selectSerial = document.getElementById('select-serial');
     const selectFloor = document.getElementById('select-floor');
-    const selectModel = document.getElementById('select-model');
     const selectSite = document.getElementById('select-site');
     const selectStatus = document.getElementById('select-status');
 
@@ -383,12 +377,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Dynamic Filter Badge Count updater
     function updateActiveFilterBadge() {
       let count = 0;
+      if (selectedAsset !== 'All') count++;
       if (selectedProgram !== 'All') count++;
-      if (selectedCpu !== 'All') count++;
-      if (selectedMonitor !== 'All') count++;
-      if (selectedSerial !== 'All') count++;
       if (selectedFloor !== 'All') count++;
-      if (selectedModel !== 'All') count++;
       if (selectedSite !== 'All') count++;
       if (selectedStatus !== 'All') count++;
 
@@ -434,24 +425,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      // Populate each of the 8 dropdowns dynamically
+      // Sync selectAsset dropdown value
+      if (selectAsset) {
+        selectAsset.value = selectedAsset;
+      }
+
+      // Populate dynamic dropdowns
       selectedProgram = populateDropdown(selectProgram, 'Program', 'All Programs', selectedProgram);
-      selectedCpu = populateDropdown(selectCpu, 'CPU_Brand', 'All CPUs', selectedCpu);
-
-      // Monitor brand is aggregated across Monitor 1, 2, and 3
-      selectedMonitor = populateDropdown(selectMonitor, (list) => {
-        const brands = [];
-        list.forEach(a => {
-          if (a.Monitor1_Brand && a.Monitor1_Brand.trim() !== '') brands.push(a.Monitor1_Brand.trim());
-          if (a.Monitor2_Brand && a.Monitor2_Brand.trim() !== '') brands.push(a.Monitor2_Brand.trim());
-          if (a.Monitor3_Brand && a.Monitor3_Brand.trim() !== '') brands.push(a.Monitor3_Brand.trim());
-        });
-        return [...new Set(brands)];
-      }, 'All Monitors', selectedMonitor);
-
-      selectedSerial = populateDropdown(selectSerial, 'CPU_Serial', 'All Serials', selectedSerial);
       selectedFloor = populateDropdown(selectFloor, 'Asset_located_floor', 'All Floors', selectedFloor);
-      selectedModel = populateDropdown(selectModel, 'CPU_Model', 'All Models', selectedModel);
       selectedSite = populateDropdown(selectSite, 'Site', 'All Sites', selectedSite);
       selectedStatus = populateDropdown(selectStatus, 'Current_Status', 'All Statuses', selectedStatus);
 
@@ -888,21 +869,24 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderTable() {
       tableBody.innerHTML = '';
 
-      // 1. Client side filters (Search input & 8 dynamic dropdown filters)
+      // 1. Client side filters (Search input & dynamic dropdown filters)
       let filtered = assetsList.filter(asset => {
-        if (selectedProgram !== 'All' && asset.Program !== selectedProgram) return false;
-        if (selectedCpu !== 'All' && asset.CPU_Brand !== selectedCpu) return false;
-
-        if (selectedMonitor !== 'All' &&
-          asset.Monitor1_Brand !== selectedMonitor &&
-          asset.Monitor2_Brand !== selectedMonitor &&
-          asset.Monitor3_Brand !== selectedMonitor) {
-          return false;
+        if (selectedAsset === 'CPU') {
+          const hasCpu = (asset.CPU_Model && asset.CPU_Model.trim() !== '' && asset.CPU_Model.trim() !== '-') ||
+                         (asset.CPU_Serial && asset.CPU_Serial.trim() !== '' && asset.CPU_Serial.trim() !== '-') ||
+                         (asset.CPU_Brand && asset.CPU_Brand.trim() !== '' && asset.CPU_Brand.trim() !== '-');
+          if (!hasCpu) return false;
+        } else if (selectedAsset === 'Monitor') {
+          const hasMonitor = [
+            asset.Monitor1_Model, asset.Monitor1_Serial, asset.Monitor1_Brand,
+            asset.Monitor2_Model, asset.Monitor2_Serial, asset.Monitor2_Brand,
+            asset.Monitor3_Model, asset.Monitor3_Serial, asset.Monitor3_Brand
+          ].some(val => val && val.trim() !== '' && val.trim() !== '-');
+          if (!hasMonitor) return false;
         }
 
-        if (selectedSerial !== 'All' && asset.CPU_Serial !== selectedSerial) return false;
+        if (selectedProgram !== 'All' && asset.Program !== selectedProgram) return false;
         if (selectedFloor !== 'All' && asset.Asset_located_floor !== selectedFloor) return false;
-        if (selectedModel !== 'All' && asset.CPU_Model !== selectedModel) return false;
         if (selectedSite !== 'All' && asset.Site !== selectedSite) return false;
         if (selectedStatus !== 'All' && asset.Current_Status !== selectedStatus) return false;
 
@@ -1059,14 +1043,11 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // Bind change events to all 8 dropdown selects
+    // Bind change events to dropdown selects
     const filterConfig = [
+      { element: selectAsset, stateSetter: val => { selectedAsset = val; } },
       { element: selectProgram, stateSetter: val => { selectedProgram = val; } },
-      { element: selectCpu, stateSetter: val => { selectedCpu = val; } },
-      { element: selectMonitor, stateSetter: val => { selectedMonitor = val; } },
-      { element: selectSerial, stateSetter: val => { selectedSerial = val; } },
       { element: selectFloor, stateSetter: val => { selectedFloor = val; } },
-      { element: selectModel, stateSetter: val => { selectedModel = val; } },
       { element: selectSite, stateSetter: val => { selectedSite = val; } },
       { element: selectStatus, stateSetter: val => { selectedStatus = val; } }
     ];
@@ -1084,21 +1065,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Clear all filters button event binding
     if (btnClearFilters) {
       btnClearFilters.addEventListener('click', () => {
+        selectedAsset = 'All';
         selectedProgram = 'All';
-        selectedCpu = 'All';
-        selectedMonitor = 'All';
-        selectedSerial = 'All';
         selectedFloor = 'All';
-        selectedModel = 'All';
         selectedSite = 'All';
         selectedStatus = 'All';
 
+        if (selectAsset) selectAsset.value = 'All';
         if (selectProgram) selectProgram.value = 'All';
-        if (selectCpu) selectCpu.value = 'All';
-        if (selectMonitor) selectMonitor.value = 'All';
-        if (selectSerial) selectSerial.value = 'All';
         if (selectFloor) selectFloor.value = 'All';
-        if (selectModel) selectModel.value = 'All';
         if (selectSite) selectSite.value = 'All';
         if (selectStatus) selectStatus.value = 'All';
 
@@ -1376,22 +1351,16 @@ document.addEventListener('DOMContentLoaded', () => {
       // Clear selections and all filters on refresh
       selectedStation = null;
       searchQuery = '';
+      selectedAsset = 'All';
       selectedProgram = 'All';
-      selectedCpu = 'All';
-      selectedMonitor = 'All';
-      selectedSerial = 'All';
       selectedFloor = 'All';
-      selectedModel = 'All';
       selectedSite = 'All';
       selectedStatus = 'All';
 
       if (searchInput) searchInput.value = '';
+      if (selectAsset) selectAsset.value = 'All';
       if (selectProgram) selectProgram.value = 'All';
-      if (selectCpu) selectCpu.value = 'All';
-      if (selectMonitor) selectMonitor.value = 'All';
-      if (selectSerial) selectSerial.value = 'All';
       if (selectFloor) selectFloor.value = 'All';
-      if (selectModel) selectModel.value = 'All';
       if (selectSite) selectSite.value = 'All';
       if (selectStatus) selectStatus.value = 'All';
 

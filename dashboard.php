@@ -104,39 +104,23 @@ session_write_close();
       </div>
       <div class="filter-grid">
         <div class="filter-group">
+          <label class="filter-label">Asset</label>
+          <select class="filter-select" id="select-asset">
+            <option value="All">All Assets</option>
+            <option value="CPU">CPU</option>
+            <option value="Monitor">Monitor</option>
+          </select>
+        </div>
+        <div class="filter-group">
           <label class="filter-label">Program</label>
           <select class="filter-select" id="select-program">
             <option value="All">All Programs</option>
           </select>
         </div>
         <div class="filter-group">
-          <label class="filter-label">CPU Brand</label>
-          <select class="filter-select" id="select-cpu">
-            <option value="All">All CPUs</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <label class="filter-label">Monitor Brand</label>
-          <select class="filter-select" id="select-monitor">
-            <option value="All">All Monitors</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <label class="filter-label">CPU Serial</label>
-          <select class="filter-select" id="select-serial">
-            <option value="All">All Serials</option>
-          </select>
-        </div>
-        <div class="filter-group">
           <label class="filter-label">Located Floor</label>
           <select class="filter-select" id="select-floor">
             <option value="All">All Floors</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <label class="filter-label">CPU Model</label>
-          <select class="filter-select" id="select-model">
-            <option value="All">All Models</option>
           </select>
         </div>
         <div class="filter-group">
