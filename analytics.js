@@ -261,17 +261,24 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Group items by CPU Model
+    // Group items by CPU Model (normalized to uppercase/trimmed to combine cases)
     const modelsData = {};
     assetsList.forEach(asset => {
-      const model = asset.CPU_Model || 'Unknown Model';
+      const rawModel = (asset.CPU_Model || 'Unknown Model').trim();
+      const model = rawModel.toUpperCase();
+      const brand = (asset.CPU_Brand || 'Unknown').trim();
+      
       if (!modelsData[model]) {
         modelsData[model] = {
           count: 0,
-          brand: asset.CPU_Brand || 'Unknown'
+          brand: brand
         };
       }
       modelsData[model].count++;
+      // If brand was unknown but is found in another record, update it
+      if (modelsData[model].brand === 'Unknown' && brand !== 'Unknown') {
+        modelsData[model].brand = brand;
+      }
     });
 
     const total = assetsList.length;

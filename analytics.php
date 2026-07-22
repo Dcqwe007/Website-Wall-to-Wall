@@ -110,6 +110,6 @@ session_write_close();
     // Lucide Icon activation
     lucide.createIcons();
   </script>
-  <script src="analytics.js?v=1.3"></script>
+  <script src="analytics.js?v=<?php echo time(); ?>"></script>
 </body>
 </html>

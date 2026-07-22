@@ -464,6 +464,87 @@ document.addEventListener('DOMContentLoaded', () => {
       updateSelectOptions(editProgramSelect);
     }
 
+    // Dynamically sync form select dropdowns with unique database values for CPU model, CPU brand, Monitor models, and Monitor brands
+    function syncFormSelectDropdowns() {
+      // 1. Gather unique CPU Models
+      const cpuModels = [...new Set(assetsList.map(a => a.CPU_Model).filter(m => m && m.trim() !== '' && m.trim() !== '-'))];
+      cpuModels.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+      // 2. Gather unique CPU Brands
+      const cpuBrands = [...new Set(assetsList.map(a => a.CPU_Brand).filter(b => b && b.trim() !== '' && b.trim() !== '-'))];
+      cpuBrands.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+      // 3. Gather unique Monitor Models
+      const monModelsList = [];
+      assetsList.forEach(a => {
+        if (a.Monitor1_Model && a.Monitor1_Model.trim() !== '' && a.Monitor1_Model.trim() !== '-') monModelsList.push(a.Monitor1_Model.trim());
+        if (a.Monitor2_Model && a.Monitor2_Model.trim() !== '' && a.Monitor2_Model.trim() !== '-') monModelsList.push(a.Monitor2_Model.trim());
+        if (a.Monitor3_Model && a.Monitor3_Model.trim() !== '' && a.Monitor3_Model.trim() !== '-') monModelsList.push(a.Monitor3_Model.trim());
+      });
+      const uniqueMonModels = [...new Set(monModelsList)];
+      uniqueMonModels.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+      // 4. Gather unique Monitor Brands
+      const monBrandsList = [];
+      assetsList.forEach(a => {
+        if (a.Monitor1_Brand && a.Monitor1_Brand.trim() !== '' && a.Monitor1_Brand.trim() !== '-') monBrandsList.push(a.Monitor1_Brand.trim());
+        if (a.Monitor2_Brand && a.Monitor2_Brand.trim() !== '' && a.Monitor2_Brand.trim() !== '-') monBrandsList.push(a.Monitor2_Brand.trim());
+        if (a.Monitor3_Brand && a.Monitor3_Brand.trim() !== '' && a.Monitor3_Brand.trim() !== '-') monBrandsList.push(a.Monitor3_Brand.trim());
+      });
+      const uniqueMonBrands = [...new Set(monBrandsList)];
+      uniqueMonBrands.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+      // Helper function to sync dropdown element options
+      function populateFormDropdown(elementId, items, placeholder) {
+        const selectEl = document.getElementById(elementId);
+        if (!selectEl) return;
+        const currentVal = selectEl.value;
+        selectEl.innerHTML = `<option value="">${placeholder}</option>`;
+        items.forEach(item => {
+          const opt = document.createElement('option');
+          opt.value = item;
+          opt.textContent = item;
+          selectEl.appendChild(opt);
+        });
+        selectEl.value = currentVal;
+      }
+
+      // Populate CPU Model dropdowns
+      populateFormDropdown('add-cpu-model', cpuModels, '-- Select CPU Model --');
+      populateFormDropdown('edit-cpu-model', cpuModels, '-- Select CPU Model --');
+
+      // Populate CPU Brand dropdowns
+      populateFormDropdown('add-cpu-brand', cpuBrands, '-- Select CPU Brand --');
+      populateFormDropdown('edit-cpu-brand', cpuBrands, '-- Select CPU Brand --');
+
+      // Populate Monitor Models
+      populateFormDropdown('add-mon1-model', uniqueMonModels, '-- None / Select Monitor Model --');
+      populateFormDropdown('edit-mon1-model', uniqueMonModels, '-- None / Select Monitor Model --');
+      populateFormDropdown('add-mon2-model', uniqueMonModels, '-- None / Select Monitor Model --');
+      populateFormDropdown('edit-mon2-model', uniqueMonModels, '-- None / Select Monitor Model --');
+      populateFormDropdown('add-mon3-model', uniqueMonModels, '-- None / Select Monitor Model --');
+      populateFormDropdown('edit-mon3-model', uniqueMonModels, '-- None / Select Monitor Model --');
+
+      // Populate Monitor Brands
+      populateFormDropdown('add-mon1-brand', uniqueMonBrands, '-- None / Select Monitor Brand --');
+      populateFormDropdown('edit-mon1-brand', uniqueMonBrands, '-- None / Select Monitor Brand --');
+      populateFormDropdown('add-mon2-brand', uniqueMonBrands, '-- None / Select Monitor Brand --');
+      populateFormDropdown('edit-mon2-brand', uniqueMonBrands, '-- None / Select Monitor Brand --');
+      populateFormDropdown('add-mon3-brand', uniqueMonBrands, '-- None / Select Monitor Brand --');
+      populateFormDropdown('edit-mon3-brand', uniqueMonBrands, '-- None / Select Monitor Brand --');
+
+      // 5. Gather unique Located Floors
+      const floorList = [...new Set(assetsList.map(a => a.Asset_located_floor).filter(f => f && f.trim() !== '' && f.trim() !== '-'))];
+      ['Ground Floor', '1st', '2nd', '3rd', '4th', '5th', '6th'].forEach(f => {
+        if (!floorList.includes(f)) floorList.push(f);
+      });
+      floorList.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+      // Populate Located Floor dropdowns
+      populateFormDropdown('add-floor', floorList, '-- Select Located Floor --');
+      populateFormDropdown('edit-floor', floorList, '-- Select Located Floor --');
+    }
+
     // Load assets from database API
     function fetchAssetsFromDatabase() {
       fetch('api.php?action=fetch')
@@ -481,6 +562,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             populateFilterDropdowns();
             syncProgramDropdowns();
+            syncFormSelectDropdowns();
             renderTable();
           } else {
             showToast("Fetch Error", res.message || "Failed to fetch assets.", "danger");
@@ -1170,20 +1252,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
       document.getElementById('edit-station-key').value = asset.Station_Number;
       document.getElementById('edit-station').value = asset.Station_Number;
-      document.getElementById('edit-cpu-model').value = asset.CPU_Model || '';
+
+      function selectValueInDropdown(elementId, val) {
+        const selectEl = document.getElementById(elementId);
+        if (!selectEl) return;
+        const normalizedVal = val ? val.trim() : '';
+        if (normalizedVal !== '') {
+          let exists = false;
+          for (let i = 0; i < selectEl.options.length; i++) {
+            if (selectEl.options[i].value === normalizedVal) {
+              exists = true;
+              break;
+            }
+          }
+          if (!exists) {
+            const opt = document.createElement('option');
+            opt.value = normalizedVal;
+            opt.textContent = normalizedVal;
+            selectEl.appendChild(opt);
+          }
+        }
+        selectEl.value = normalizedVal;
+      }
+
+      selectValueInDropdown('edit-cpu-model', asset.CPU_Model);
       document.getElementById('edit-cpu-serial').value = asset.CPU_Serial || '';
-      document.getElementById('edit-cpu-brand').value = asset.CPU_Brand || '';
-      document.getElementById('edit-mon1-model').value = asset.Monitor1_Model || '';
+      selectValueInDropdown('edit-cpu-brand', asset.CPU_Brand);
+
+      selectValueInDropdown('edit-mon1-model', asset.Monitor1_Model);
       document.getElementById('edit-mon1-serial').value = asset.Monitor1_Serial || '';
-      document.getElementById('edit-mon1-brand').value = asset.Monitor1_Brand || '';
-      document.getElementById('edit-mon2-model').value = asset.Monitor2_Model || '';
+      selectValueInDropdown('edit-mon1-brand', asset.Monitor1_Brand);
+
+      selectValueInDropdown('edit-mon2-model', asset.Monitor2_Model);
       document.getElementById('edit-mon2-serial').value = asset.Monitor2_Serial || '';
-      document.getElementById('edit-mon2-brand').value = asset.Monitor2_Brand || '';
-      document.getElementById('edit-mon3-model').value = asset.Monitor3_Model || '';
+      selectValueInDropdown('edit-mon2-brand', asset.Monitor2_Brand);
+
+      selectValueInDropdown('edit-mon3-model', asset.Monitor3_Model);
       document.getElementById('edit-mon3-serial').value = asset.Monitor3_Serial || '';
-      document.getElementById('edit-mon3-brand').value = asset.Monitor3_Brand || '';
+      selectValueInDropdown('edit-mon3-brand', asset.Monitor3_Brand);
+
       document.getElementById('edit-program').value = asset.Program || '';
-      document.getElementById('edit-floor').value = asset.Asset_located_floor || '';
+      selectValueInDropdown('edit-floor', asset.Asset_located_floor);
       document.getElementById('edit-site').value = asset.Site || '';
       document.getElementById('edit-status').value = asset.Current_Status || 'Deployed';
 

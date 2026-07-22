@@ -282,7 +282,9 @@ session_write_close();
           </div>
           <div class="form-group">
             <label class="form-label">CPU Model</label>
-            <input type="text" class="modal-input-field" id="add-cpu-model" placeholder="e.g. HP EliteDesk 800 G5">
+            <select class="modal-input-field" id="add-cpu-model">
+              <option value="">-- Select CPU Model --</option>
+            </select>
           </div>
           <div class="form-group">
             <label class="form-label">CPU Serial</label>
@@ -290,11 +292,15 @@ session_write_close();
           </div>
           <div class="form-group">
             <label class="form-label">CPU Brand</label>
-            <input type="text" class="modal-input-field" id="add-cpu-brand" placeholder="e.g. HP">
+            <select class="modal-input-field" id="add-cpu-brand">
+              <option value="">-- Select CPU Brand --</option>
+            </select>
           </div>
           <div class="form-group">
             <label class="form-label">Monitor 1 Model</label>
-            <input type="text" class="modal-input-field" id="add-mon1-model" placeholder="e.g. HP P201">
+            <select class="modal-input-field" id="add-mon1-model">
+              <option value="">-- None / Select Monitor Model --</option>
+            </select>
           </div>
           <div class="form-group">
             <label class="form-label">Monitor 1 Serial</label>
@@ -302,11 +308,15 @@ session_write_close();
           </div>
           <div class="form-group">
             <label class="form-label">Monitor 1 Brand</label>
-            <input type="text" class="modal-input-field" id="add-mon1-brand" placeholder="e.g. HP">
+            <select class="modal-input-field" id="add-mon1-brand">
+              <option value="">-- None / Select Monitor Brand --</option>
+            </select>
           </div>
           <div class="form-group">
             <label class="form-label">Monitor 2 Model</label>
-            <input type="text" class="modal-input-field" id="add-mon2-model" placeholder="e.g. Samsung S22E390H">
+            <select class="modal-input-field" id="add-mon2-model">
+              <option value="">-- None / Select Monitor Model --</option>
+            </select>
           </div>
           <div class="form-group">
             <label class="form-label">Monitor 2 Serial</label>
@@ -314,11 +324,15 @@ session_write_close();
           </div>
           <div class="form-group">
             <label class="form-label">Monitor 2 Brand</label>
-            <input type="text" class="modal-input-field" id="add-mon2-brand" placeholder="e.g. Samsung">
+            <select class="modal-input-field" id="add-mon2-brand">
+              <option value="">-- None / Select Monitor Brand --</option>
+            </select>
           </div>
           <div class="form-group">
             <label class="form-label">Monitor 3 Model</label>
-            <input type="text" class="modal-input-field" id="add-mon3-model" placeholder="e.g. Dell P2419H">
+            <select class="modal-input-field" id="add-mon3-model">
+              <option value="">-- None / Select Monitor Model --</option>
+            </select>
           </div>
           <div class="form-group">
             <label class="form-label">Monitor 3 Serial</label>
@@ -326,7 +340,9 @@ session_write_close();
           </div>
           <div class="form-group">
             <label class="form-label">Monitor 3 Brand</label>
-            <input type="text" class="modal-input-field" id="add-mon3-brand" placeholder="e.g. Dell">
+            <select class="modal-input-field" id="add-mon3-brand">
+              <option value="">-- None / Select Monitor Brand --</option>
+            </select>
           </div>
           <div class="form-group">
             <label class="form-label">Program</label>
@@ -343,7 +359,9 @@ session_write_close();
           </div>
           <div class="form-group">
             <label class="form-label">Located Floor</label>
-            <input type="text" class="modal-input-field" id="add-floor" placeholder="e.g. 4th">
+            <select class="modal-input-field" id="add-floor">
+              <option value="">-- Select Located Floor --</option>
+            </select>
           </div>
           <div class="form-group">
             <label class="form-label">Site</label>
@@ -386,7 +404,9 @@ session_write_close();
           </div>
           <div class="form-group">
             <label class="form-label">CPU Model</label>
-            <input type="text" class="modal-input-field" id="edit-cpu-model">
+            <select class="modal-input-field" id="edit-cpu-model">
+              <option value="">-- Select CPU Model --</option>
+            </select>
           </div>
           <div class="form-group">
             <label class="form-label">CPU Serial</label>
@@ -394,11 +414,15 @@ session_write_close();
           </div>
           <div class="form-group">
             <label class="form-label">CPU Brand</label>
-            <input type="text" class="modal-input-field" id="edit-cpu-brand">
+            <select class="modal-input-field" id="edit-cpu-brand">
+              <option value="">-- Select CPU Brand --</option>
+            </select>
           </div>
           <div class="form-group">
             <label class="form-label">Monitor 1 Model</label>
-            <input type="text" class="modal-input-field" id="edit-mon1-model">
+            <select class="modal-input-field" id="edit-mon1-model">
+              <option value="">-- None / Select Monitor Model --</option>
+            </select>
           </div>
           <div class="form-group">
             <label class="form-label">Monitor 1 Serial</label>
@@ -406,11 +430,15 @@ session_write_close();
           </div>
           <div class="form-group">
             <label class="form-label">Monitor 1 Brand</label>
-            <input type="text" class="modal-input-field" id="edit-mon1-brand">
+            <select class="modal-input-field" id="edit-mon1-brand">
+              <option value="">-- None / Select Monitor Brand --</option>
+            </select>
           </div>
           <div class="form-group">
             <label class="form-label">Monitor 2 Model</label>
-            <input type="text" class="modal-input-field" id="edit-mon2-model">
+            <select class="modal-input-field" id="edit-mon2-model">
+              <option value="">-- None / Select Monitor Model --</option>
+            </select>
           </div>
           <div class="form-group">
             <label class="form-label">Monitor 2 Serial</label>
@@ -418,11 +446,15 @@ session_write_close();
           </div>
           <div class="form-group">
             <label class="form-label">Monitor 2 Brand</label>
-            <input type="text" class="modal-input-field" id="edit-mon2-brand">
+            <select class="modal-input-field" id="edit-mon2-brand">
+              <option value="">-- None / Select Monitor Brand --</option>
+            </select>
           </div>
           <div class="form-group">
             <label class="form-label">Monitor 3 Model</label>
-            <input type="text" class="modal-input-field" id="edit-mon3-model">
+            <select class="modal-input-field" id="edit-mon3-model">
+              <option value="">-- None / Select Monitor Model --</option>
+            </select>
           </div>
           <div class="form-group">
             <label class="form-label">Monitor 3 Serial</label>
@@ -430,7 +462,9 @@ session_write_close();
           </div>
           <div class="form-group">
             <label class="form-label">Monitor 3 Brand</label>
-            <input type="text" class="modal-input-field" id="edit-mon3-brand">
+            <select class="modal-input-field" id="edit-mon3-brand">
+              <option value="">-- None / Select Monitor Brand --</option>
+            </select>
           </div>
           <div class="form-group">
             <label class="form-label">Program</label>
@@ -447,7 +481,9 @@ session_write_close();
           </div>
           <div class="form-group">
             <label class="form-label">Located Floor</label>
-            <input type="text" class="modal-input-field" id="edit-floor">
+            <select class="modal-input-field" id="edit-floor">
+              <option value="">-- Select Located Floor --</option>
+            </select>
           </div>
           <div class="form-group">
             <label class="form-label">Site</label>
