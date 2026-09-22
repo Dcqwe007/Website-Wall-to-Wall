@@ -90,3 +90,17 @@ CREATE TABLE IF NOT EXISTS `inventory` (
   `removed_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `status` VARCHAR(50) DEFAULT 'On Inventory'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- 5. Create the Storage Table
+CREATE TABLE IF NOT EXISTS `storage` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `asset_type` VARCHAR(50) NOT NULL,
+  `model` VARCHAR(100) DEFAULT NULL,
+  `serial_number` VARCHAR(50) NOT NULL,
+  `brand` VARCHAR(100) DEFAULT NULL,
+  `location` VARCHAR(100) DEFAULT 'Main Storage Room',
+  `quantity` INT DEFAULT 1,
+  `username` VARCHAR(50) NOT NULL DEFAULT 'System',
+  `added_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `status` VARCHAR(50) DEFAULT 'In Storage'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

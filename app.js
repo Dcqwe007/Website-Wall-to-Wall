@@ -1,5 +1,16 @@
 document.addEventListener('DOMContentLoaded', () => {
 
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+  const htmlspecialchars = escapeHtml;
+
   /* ========================================================
      1. TOAST NOTIFICATION SYSTEM
      ======================================================== */
@@ -321,6 +332,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let inventorySortColumn = 'removed_at';
     let inventorySortOrder = 'desc';
     let inventorySearchQuery = '';
+
+    // Storage states
+    let storageList = [];
+    let currentFilteredStorage = [];
+    let storageSortColumn = 'added_at';
+    let storageSortOrder = 'desc';
+    let storageSearchQuery = '';
 
     // Multi-faceted Filter States
     let selectedAsset = 'All';
@@ -945,6 +963,176 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast("CSV Compiled", "Download for 'it_wall_to_wall_inventory_export.csv' has started.", "success");
     }
 
+    // Load storage items from database API
+    function fetchStorageFromDatabase() {
+      fetch('api.php?action=storage&_t=' + Date.now())
+        .then(res => res.json())
+        .then(res => {
+          if (res.success) {
+            storageList = res.data || [];
+            renderStorageTable();
+          } else {
+            showToast("Fetch Error", res.message || "Failed to fetch storage items.", "danger");
+          }
+        })
+        .catch(err => {
+          console.error("Storage fetch failed", err);
+          renderStorageTable();
+        });
+    }
+
+    // Render storage table
+    function renderStorageTable() {
+      const storageTableBody = document.getElementById('storage-table-body');
+      const emptyMessage = document.getElementById('table-empty-message');
+      const emptyMessageText = document.getElementById('empty-message-text');
+      const statsText = document.getElementById('footer-stats-text');
+
+      if (!storageTableBody) return;
+      storageTableBody.innerHTML = '';
+
+      let filtered = storageList.filter(item => {
+        if (storageSearchQuery) {
+          const matchStr = `${item.asset_type || ''} ${item.model || ''} ${item.serial_number || ''} ${item.brand || ''} ${item.location || ''} ${item.username || ''} ${item.status || ''}`.toLowerCase();
+          return matchStr.includes(storageSearchQuery);
+        }
+        return true;
+      });
+
+      filtered.sort((a, b) => {
+        let valA = a[storageSortColumn];
+        let valB = b[storageSortColumn];
+        if (storageSortColumn === 'quantity' || storageSortColumn === 'id') {
+          valA = parseInt(valA) || 0;
+          valB = parseInt(valB) || 0;
+        } else {
+          valA = (valA || '').toString().toLowerCase();
+          valB = (valB || '').toString().toLowerCase();
+        }
+        if (valA < valB) return storageSortOrder === 'asc' ? -1 : 1;
+        if (valA > valB) return storageSortOrder === 'asc' ? 1 : -1;
+        return 0;
+      });
+
+      currentFilteredStorage = filtered;
+
+      if (filtered.length === 0) {
+        if (emptyMessage) emptyMessage.style.display = 'flex';
+        if (emptyMessageText) emptyMessageText.textContent = "No storage items found.";
+      } else {
+        if (emptyMessage) emptyMessage.style.display = 'none';
+
+        filtered.forEach(item => {
+          const tr = document.createElement('tr');
+          tr.setAttribute('data-id', item.id);
+
+          let statusStyle = 'background: #E2ECEB; color: #003D5B; border: 1px solid #A8D8D5;';
+          const st = (item.status || 'In Storage').toLowerCase();
+          if (st === 'working') {
+            statusStyle = 'background: rgba(16, 185, 129, 0.15); color: #059669; border: 1px solid rgba(16, 185, 129, 0.3);';
+          } else if (st === 'disposal') {
+            statusStyle = 'background: rgba(239, 68, 68, 0.15); color: #DC2626; border: 1px solid rgba(239, 68, 68, 0.3);';
+          } else if (st === 'for repair') {
+            statusStyle = 'background: rgba(245, 158, 11, 0.15); color: #D97706; border: 1px solid rgba(245, 158, 11, 0.3);';
+          }
+
+          tr.innerHTML = `
+            <td>${item.added_at ? item.added_at.substring(0, 16) : 'N/A'}</td>
+            <td><strong style="color: #003D5B;">${htmlspecialchars(item.asset_type || 'General')}</strong></td>
+            <td>${htmlspecialchars(item.brand || '-')}</td>
+            <td>${htmlspecialchars(item.model || '-')}</td>
+            <td><code style="background: rgba(0, 61, 91, 0.08); padding: 2px 6px; border-radius: 4px; font-weight: 600;">${htmlspecialchars(item.serial_number || '-')}</code></td>
+            <td><span style="background: rgba(37, 226, 204, 0.15); color: #00665E; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">${htmlspecialchars(item.location || 'Main Storage')}</span></td>
+            <td><strong>${item.quantity || 1}</strong></td>
+            <td>${htmlspecialchars(item.username || 'System')}</td>
+            <td><span class="status-pill" style="padding: 3px 10px; border-radius: 12px; font-weight: 600; font-size: 11px; ${statusStyle}">${htmlspecialchars(item.status || 'In Storage')}</span></td>
+            <td>
+              <button class="btn-scrap-storage" data-id="${item.id}" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); cursor: pointer; color: #EF4444; padding: 4px 10px; border-radius: 4px; font-weight: 600; font-size: 11px; transition: all 0.15s ease;" onmouseover="this.style.background='rgba(239, 68, 68, 0.2)'" onmouseout="this.style.background='rgba(239, 68, 68, 0.1)'">
+                Remove
+              </button>
+            </td>
+          `;
+
+          const scrapBtn = tr.querySelector('.btn-scrap-storage');
+          if (scrapBtn) {
+            scrapBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              if (confirm("Are you sure you want to remove this item from storage?")) {
+                fetch('api.php?action=delete_storage', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ id: item.id })
+                })
+                .then(res => res.json())
+                .then(res => {
+                  if (res.success) {
+                    showToast("Storage Item Removed", "Item removed from storage inventory.", "success");
+                    fetchStorageFromDatabase();
+                  } else {
+                    showToast("Action Failed", res.message || "Could not remove item.", "danger");
+                  }
+                });
+              }
+            });
+          }
+
+          storageTableBody.appendChild(tr);
+        });
+      }
+
+      if (statsText) {
+        statsText.innerHTML = `Total Storage Items: <strong>${storageList.length}</strong> | Visible: <strong>${filtered.length}</strong>`;
+      }
+    }
+
+    // Export Storage list to CSV
+    function exportStorageCSV() {
+      const listToExport = currentFilteredStorage.length > 0 ? currentFilteredStorage : storageList;
+
+      if (listToExport.length === 0) {
+        showToast("Export Failed", "There are no storage items to download.", "danger");
+        return;
+      }
+
+      const headers = ["ID", "Date Added", "Asset Type", "Brand", "Model", "Serial Number", "Location", "Quantity", "Operator", "Status"];
+      let csvContent = headers.join(",") + "\r\n";
+
+      listToExport.forEach(item => {
+        const row = [
+          item.id,
+          item.added_at,
+          item.asset_type,
+          item.brand,
+          item.model,
+          item.serial_number,
+          item.location,
+          item.quantity,
+          item.username,
+          item.status
+        ].map(val => {
+          let str = (val !== null && val !== undefined) ? val.toString().replace(/"/g, '""') : '';
+          if (str.includes(',') || str.includes('\n') || str.includes('\r') || str.includes('"')) {
+            str = `"${str}"`;
+          }
+          return str;
+        });
+        csvContent += row.join(",") + "\r\n";
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", "it_wall_to_wall_storage_export.csv");
+      document.body.appendChild(link);
+
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      showToast("CSV Compiled", "Download for 'it_wall_to_wall_storage_export.csv' has started.", "success");
+    }
+
     /* ========================================================
        RENDER AND FILTER TABLE (Enterprise DataGridView Style)
        ======================================================== */
@@ -1173,11 +1361,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalEdit = document.getElementById('modal-edit');
     const modalStatus = document.getElementById('modal-status');
     const modalDelete = document.getElementById('modal-delete');
+    const modalAddStorage = document.getElementById('modal-add-storage');
 
-    function openModal(modal) { modal.classList.add('open'); }
-    function closeModal(modal) { modal.classList.remove('open'); }
+    function openModal(modal) { if (modal) modal.classList.add('open'); }
+    function closeModal(modal) { if (modal) modal.classList.remove('open'); }
 
     function setupModalClose(modal, closeBtnId, cancelBtnId) {
+      if (!modal) return;
       const closeBtn = document.getElementById(closeBtnId);
       const cancelBtn = document.getElementById(cancelBtnId);
 
@@ -1193,6 +1383,19 @@ document.addEventListener('DOMContentLoaded', () => {
     setupModalClose(modalEdit, 'btn-close-edit', 'btn-cancel-edit');
     setupModalClose(modalStatus, 'btn-close-status', 'btn-cancel-status');
     setupModalClose(modalDelete, 'btn-close-delete-modal', 'btn-cancel-delete-modal');
+    setupModalClose(modalAddStorage, 'btn-close-add-storage', 'btn-cancel-add-storage');
+
+    // Trigger Add Storage Modal
+    const btnAddStorageItem = document.getElementById('btn-add-storage-item');
+    if (btnAddStorageItem && modalAddStorage) {
+      btnAddStorageItem.addEventListener('click', () => {
+        const form = document.getElementById('form-add-storage');
+        if (form) form.reset();
+        const detailsPanel = document.getElementById('storage-asset-details-panel');
+        if (detailsPanel) detailsPanel.style.display = 'none';
+        openModal(modalAddStorage);
+      });
+    }
 
     // Trigger Add Modal
     document.getElementById('btn-add').addEventListener('click', () => {
@@ -1603,10 +1806,11 @@ document.addEventListener('DOMContentLoaded', () => {
       btnLogoutSidebar.addEventListener('click', triggerLogout);
     }
 
-    // Check if ?view=edit_history or view=inventory is in URL search params
+    // Check if ?view=edit_history, view=inventory, or view=storage is in URL search params
     const urlParams = new URLSearchParams(window.location.search);
     const isHistoryView = urlParams.get('view') === 'edit_history';
     const isInventoryView = urlParams.get('view') === 'inventory';
+    const isStorageView = urlParams.get('view') === 'storage';
 
     if (isHistoryView) {
       const historyBanner = document.getElementById('edit-history-banner');
@@ -1794,6 +1998,185 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Initial inventory load
       fetchInventoryFromDatabase();
+    } else if (isStorageView) {
+      const storageBanner = document.getElementById('storage-banner');
+      if (storageBanner) storageBanner.style.display = 'flex';
+
+      const assetsTable = document.getElementById('assets-table');
+      if (assetsTable) assetsTable.style.display = 'none';
+
+      const storageTable = document.getElementById('storage-table');
+      if (storageTable) storageTable.style.display = 'table';
+
+      // Hide CRUD actions
+      const btnAdd = document.getElementById('btn-add');
+      const btnEdit = document.getElementById('btn-edit');
+      const btnDelete = document.getElementById('btn-delete');
+      const btnUpdateStatus = document.getElementById('btn-update-status');
+      const btnGotoInventory = document.getElementById('btn-goto-inventory');
+
+      if (btnAdd) btnAdd.style.display = 'none';
+      if (btnEdit) btnEdit.style.display = 'none';
+      if (btnDelete) btnDelete.style.display = 'none';
+      if (btnUpdateStatus) btnUpdateStatus.style.display = 'none';
+      if (btnGotoInventory) btnGotoInventory.style.display = 'none';
+
+      // Switch filters toolbar search
+      const assetFiltersPanel = document.getElementById('asset-filters-panel');
+      const storageFiltersPanel = document.getElementById('storage-filters-panel');
+      const toolbarPageTitle = document.getElementById('toolbar-page-title');
+
+      if (assetFiltersPanel) assetFiltersPanel.style.display = 'none';
+      if (storageFiltersPanel) storageFiltersPanel.style.display = 'flex';
+      if (toolbarPageTitle) toolbarPageTitle.textContent = "Storage Room Inventory";
+
+      // Hide filters drawer
+      const filterDrawer = document.getElementById('filter-drawer');
+      if (filterDrawer) filterDrawer.style.display = 'none';
+
+      // Swap export buttons
+      const btnExportCsv = document.getElementById('btn-export-csv');
+      const btnExportStorageCsv = document.getElementById('btn-export-storage-csv');
+      if (btnExportCsv) btnExportCsv.style.display = 'none';
+      if (btnExportStorageCsv) btnExportStorageCsv.style.display = 'inline-block';
+
+      // Clear storage view banner button
+      const btnClearStorageView = document.getElementById('btn-clear-storage-view');
+      if (btnClearStorageView) {
+        btnClearStorageView.addEventListener('click', () => {
+          window.location.href = 'dashboard.php';
+        });
+      }
+
+      // Search input handler
+      const storageSearchInput = document.getElementById('storage-search-input');
+      if (storageSearchInput) {
+        storageSearchInput.addEventListener('input', (e) => {
+          storageSearchQuery = e.target.value.trim().toLowerCase();
+          renderStorageTable();
+        });
+      }
+
+      // Export CSV handler
+      if (btnExportStorageCsv) {
+        btnExportStorageCsv.addEventListener('click', () => {
+          exportStorageCSV();
+        });
+      }
+
+      // Add storage modal triggers
+      const btnAddStorageItem = document.getElementById('btn-add-storage-item');
+      const modalAddStorage = document.getElementById('modal-add-storage');
+      const btnCloseAddStorage = document.getElementById('btn-close-add-storage');
+      const btnCancelAddStorage = document.getElementById('btn-cancel-add-storage');
+      const formAddStorage = document.getElementById('form-add-storage');
+
+      if (btnAddStorageItem && modalAddStorage) {
+        btnAddStorageItem.addEventListener('click', () => {
+          modalAddStorage.style.display = 'flex';
+        });
+      }
+
+      if (btnCloseAddStorage && modalAddStorage) {
+        btnCloseAddStorage.addEventListener('click', () => {
+          modalAddStorage.style.display = 'none';
+        });
+      }
+
+      if (btnCancelAddStorage && modalAddStorage) {
+        btnCancelAddStorage.addEventListener('click', () => {
+          modalAddStorage.style.display = 'none';
+        });
+      }
+
+      const storageAlsoAddAsset = document.getElementById('storage-also-add-asset');
+      const storageAssetDetailsPanel = document.getElementById('storage-asset-details-panel');
+
+      if (storageAlsoAddAsset && storageAssetDetailsPanel) {
+        storageAlsoAddAsset.addEventListener('change', (e) => {
+          storageAssetDetailsPanel.style.display = e.target.checked ? 'block' : 'none';
+        });
+      }
+
+      if (formAddStorage && modalAddStorage) {
+        formAddStorage.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const assetType = document.getElementById('storage-asset-type').value;
+          const brand = document.getElementById('storage-brand').value;
+          const model = document.getElementById('storage-model').value;
+          const serial = document.getElementById('storage-serial').value;
+          const status = document.getElementById('storage-status').value;
+          const operator = document.getElementById('storage-operator').value;
+          const location = document.getElementById('storage-location').value;
+          const qty = parseInt(document.getElementById('storage-qty').value) || 1;
+          const alsoAddAsset = storageAlsoAddAsset ? storageAlsoAddAsset.checked : false;
+          const stationNumber = document.getElementById('storage-asset-station')?.value || 0;
+          const program = document.getElementById('storage-asset-program')?.value || '';
+          const floor = document.getElementById('storage-asset-floor')?.value || '';
+          const site = document.getElementById('storage-asset-site')?.value || '';
+
+          fetch('api.php?action=add_storage', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              asset_type: assetType,
+              brand: brand,
+              model: model,
+              serial_number: serial,
+              status: status,
+              operator: operator,
+              location: location,
+              quantity: qty,
+              also_add_asset: alsoAddAsset,
+              station_number: stationNumber,
+              program: program,
+              floor: floor,
+              site: site
+            })
+          })
+          .then(res => res.json())
+          .then(res => {
+            if (res.success) {
+              const msg = alsoAddAsset ? "New storage item logged & registered as workstation asset!" : "New item logged into storage inventory.";
+              showToast("Storage Item Saved", msg, "success");
+              closeModal(modalAddStorage);
+              formAddStorage.reset();
+              if (storageAssetDetailsPanel) storageAssetDetailsPanel.style.display = 'none';
+              fetchStorageFromDatabase();
+            } else {
+              showToast("Add Failed", res.message || "Failed to log item into storage.", "danger");
+            }
+          });
+        });
+      }
+
+      // Sorting handler for storage
+      document.querySelectorAll('th[data-sort-storage]').forEach(th => {
+        th.addEventListener('click', () => {
+          const dbCol = th.getAttribute('data-sort-storage');
+
+          document.querySelectorAll('th[data-sort-storage]').forEach(header => {
+            header.classList.remove('sorted-asc', 'sorted-desc');
+            const ind = header.querySelector('.sort-indicator-storage');
+            if (ind) ind.textContent = '';
+          });
+
+          if (storageSortColumn === dbCol) {
+            storageSortOrder = storageSortOrder === 'asc' ? 'desc' : 'asc';
+          } else {
+            storageSortColumn = dbCol;
+            storageSortOrder = 'asc';
+          }
+
+          th.classList.add(storageSortOrder === 'asc' ? 'sorted-asc' : 'sorted-desc');
+          const ind = th.querySelector('.sort-indicator-storage');
+          if (ind) ind.textContent = storageSortOrder === 'asc' ? ' ▲' : ' ▼';
+          renderStorageTable();
+        });
+      });
+
+      // Initial storage load
+      fetchStorageFromDatabase();
     } else {
       const btnGotoInventory = document.getElementById('btn-goto-inventory');
       if (btnGotoInventory) {

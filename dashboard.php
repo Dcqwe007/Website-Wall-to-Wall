@@ -88,6 +88,15 @@ session_write_close();
           <i data-lucide="search" class="search-icon" style="width: 15px; height: 15px;"></i>
         </div>
       </div>
+      <div class="filter-panel" id="storage-filters-panel" style="display: none; gap: 10px;">
+        <div class="search-box-wrapper">
+          <input type="text" placeholder="Search storage..." class="search-box-input" id="storage-search-input">
+          <i data-lucide="search" class="search-icon" style="width: 15px; height: 15px;"></i>
+        </div>
+        <button class="btn-action" id="btn-add-storage-item" type="button" style="background: #25E2CC; color: #002B3D; border: none; font-weight: 600; padding: 6px 14px; border-radius: 4px; cursor: pointer;">
+          <i data-lucide="plus" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i>Add Storage Item
+        </button>
+      </div>
     </div>
 
     <!-- Collapsible Filter Drawer -->
@@ -161,6 +170,17 @@ session_write_close();
       </button>
     </div>
 
+    <!-- Storage Management View Active Banner -->
+    <div class="edit-history-banner" id="storage-banner" style="display: none; background: #D1E7DD; border: 1px solid #A3CFBB; border-radius: 4px; padding: 12px 20px; margin: 10px 20px; align-items: center; justify-content: space-between; font-size: 14px; color: #0F5132; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <i data-lucide="box" style="width: 16px; height: 16px; color: #0F5132;"></i>
+        <span><strong>IT Equipment Storage Active</strong>: Tracking spare hardware, backup components, cables, and storage room inventory.</span>
+      </div>
+      <button class="btn-clear-history-view" id="btn-clear-storage-view" style="background: #0F5132; border: none; color: white; padding: 6px 14px; border-radius: 4px; font-weight: 600; cursor: pointer; transition: all 0.15s ease; font-size: 12px;" onmouseover="this.style.background='#0a3622'" onmouseout="this.style.background='#0F5132'">
+        Show Asset Grid
+      </button>
+    </div>
+
     <!-- Main Table Workspace -->
     <main class="table-workspace">
       <table class="table-custom" id="assets-table">
@@ -226,6 +246,27 @@ session_write_close();
           <!-- Populated dynamically by JS -->
         </tbody>
       </table>
+
+      <!-- Storage Table -->
+      <table class="table-custom" id="storage-table" style="display: none; width: 100%;">
+        <thead>
+          <tr>
+            <th data-sort-storage="added_at" class="sorted-desc">Date Added<span class="sort-indicator-storage"> ▼</span></th>
+            <th data-sort-storage="asset_type">Asset Type<span class="sort-indicator-storage"></span></th>
+            <th data-sort-storage="brand">Brand<span class="sort-indicator-storage"></span></th>
+            <th data-sort-storage="model">Model<span class="sort-indicator-storage"></span></th>
+            <th data-sort-storage="serial_number">Serial Number / Tag<span class="sort-indicator-storage"></span></th>
+            <th data-sort-storage="location">Storage Location<span class="sort-indicator-storage"></span></th>
+            <th data-sort-storage="quantity">Qty<span class="sort-indicator-storage"></span></th>
+            <th data-sort-storage="username">Operator<span class="sort-indicator-storage"></span></th>
+            <th data-sort-storage="status">Status<span class="sort-indicator-storage"></span></th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="storage-table-body">
+          <!-- Populated dynamically by JS -->
+        </tbody>
+      </table>
       
       <!-- Empty State indicator -->
       <div class="table-empty-state" id="table-empty-message" style="display: none;">
@@ -251,6 +292,7 @@ session_write_close();
         <button class="btn-footer" id="btn-export-csv">Export CSV</button>
         <button class="btn-footer" id="btn-export-history-csv" style="display: none;">Export History CSV</button>
         <button class="btn-footer" id="btn-export-inventory-csv" style="display: none;">Export Inventory CSV</button>
+        <button class="btn-footer" id="btn-export-storage-csv" style="display: none;">Export Storage CSV</button>
       </div>
     </footer>
 
@@ -555,6 +597,104 @@ session_write_close();
     </div>
   </div>
 
+  <!-- Modal 5: Add Storage Item -->
+  <div class="modal-overlay" id="modal-add-storage">
+    <div class="glass-panel modal-card" style="max-width: 520px; padding: 24px;">
+      <div class="modal-header" style="margin-bottom: 16px;">
+        <h2 class="modal-title" style="font-size: 17px;">
+          <i data-lucide="box" style="color: var(--bg-header-footer); width: 18px; height: 18px;"></i>
+          Add New Storage Item
+        </h2>
+        <button class="btn-modal-close" id="btn-close-add-storage">
+          <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+        </button>
+      </div>
+      <form id="form-add-storage">
+        <div class="modal-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Type of Asset</label>
+            <select class="modal-input-field" id="storage-asset-type" required>
+              <option value="CPU">CPU</option>
+              <option value="Monitor">Monitor</option>
+              <option value="Keyboard">Keyboard</option>
+              <option value="Mouse">Mouse</option>
+              <option value="Cable / Adapter">Cable / Adapter</option>
+              <option value="RAM / Component">RAM / Component</option>
+              <option value="Other Hardware">Other Hardware</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Brand</label>
+            <input type="text" class="modal-input-field" id="storage-brand" placeholder="e.g. HP, Dell, Samsung" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Model</label>
+            <input type="text" class="modal-input-field" id="storage-model" placeholder="e.g. ProDisplay P201" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Serial Number</label>
+            <input type="text" class="modal-input-field" id="storage-serial" placeholder="e.g. 3CQ4210W7V" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Status (Condition)</label>
+            <select class="modal-input-field" id="storage-status" required>
+              <option value="Working">Working</option>
+              <option value="Disposal">Disposal</option>
+              <option value="In Storage">In Storage</option>
+              <option value="For Repair">For Repair</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Operator</label>
+            <input type="text" class="modal-input-field" id="storage-operator" value="<?php echo htmlspecialchars($_SESSION['aether_username'] ?? 'Dominic Carreon'); ?>" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Storage Location</label>
+            <input type="text" class="modal-input-field" id="storage-location" value="Main Storage Room" placeholder="e.g. Cabinet A-1" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Quantity</label>
+            <input type="number" class="modal-input-field" id="storage-qty" value="1" min="1" required>
+          </div>
+        </div>
+
+        <!-- Checkbox option to also register as active workstation asset -->
+        <div style="background: rgba(37, 226, 204, 0.1); border: 1px solid rgba(37, 226, 204, 0.3); border-radius: 6px; padding: 12px; margin-top: 14px; margin-bottom: 16px;">
+          <label style="display: flex; align-items: center; gap: 8px; font-weight: 600; color: #003D5B; cursor: pointer; font-size: 13px;">
+            <input type="checkbox" id="storage-also-add-asset" style="width: 16px; height: 16px; accent-color: #25E2CC;">
+            <span>Also Add as Active Asset in Wall to Wall Grid</span>
+          </label>
+          
+          <div id="storage-asset-details-panel" style="display: none; margin-top: 12px; border-top: 1px dashed rgba(0, 61, 91, 0.2); padding-top: 10px;">
+            <div class="form-group" style="margin-bottom: 10px;">
+              <label class="form-label" style="font-size: 11px;">Target Station Number</label>
+              <input type="number" class="modal-input-field" id="storage-asset-station" placeholder="e.g. 101">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-size: 10px;">Program</label>
+                <input type="text" class="modal-input-field" id="storage-asset-program" placeholder="e.g. Macys">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-size: 10px;">Floor</label>
+                <input type="text" class="modal-input-field" id="storage-asset-floor" placeholder="e.g. 4th">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-size: 10px;">Site</label>
+                <input type="text" class="modal-input-field" id="storage-asset-site" placeholder="e.g. UP2">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions" style="padding-top: 16px; border-top: 1px solid #E5E7EB;">
+          <button type="button" class="btn-action" id="btn-cancel-add-storage">Cancel</button>
+          <button type="submit" class="btn-action btn-primary" style="width: auto; background-color: #25E2CC; color: #002B3D; border: none; font-weight: 600;">Save Storage Item</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Toast Notification Center -->
   <div class="toast-container" id="toast-container"></div>
 
@@ -562,6 +702,6 @@ session_write_close();
     // Lucide Icon activation
     lucide.createIcons();
   </script>
-  <script src="app.js?v=<?php echo time(); ?>"></script>
+  <script src="app.js?v=<?php echo time(); ?>&t=<?php echo microtime(true); ?>"></script>
 </body>
 </html>

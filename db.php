@@ -49,6 +49,20 @@ function getDBConnection() {
             `status` VARCHAR(50) DEFAULT 'On Inventory'
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
+        // Auto-create storage table if it does not exist
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `storage` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `asset_type` VARCHAR(50) NOT NULL,
+            `model` VARCHAR(100) DEFAULT NULL,
+            `serial_number` VARCHAR(50) NOT NULL,
+            `brand` VARCHAR(100) DEFAULT NULL,
+            `location` VARCHAR(100) DEFAULT 'Main Storage Room',
+            `quantity` INT DEFAULT 1,
+            `username` VARCHAR(50) NOT NULL DEFAULT 'System',
+            `added_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            `status` VARCHAR(50) DEFAULT 'In Storage'
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
         // Auto-drop Hostname column if it exists in assets table
         try {
             $pdo->exec("ALTER TABLE `assets` DROP COLUMN `Hostname` ");

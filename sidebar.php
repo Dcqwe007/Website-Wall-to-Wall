@@ -30,6 +30,10 @@ $currentPage = basename($_SERVER['PHP_SELF']);
       <i data-lucide="archive" style="width: 16px; height: 16px;"></i>
       <span>Inventory</span>
     </a>
+    <a href="dashboard.php?view=storage" class="nav-item <?php echo ($currentPage == 'dashboard.php' && isset($_GET['view']) && $_GET['view'] == 'storage') ? 'active' : ''; ?>" id="nav-storage">
+      <i data-lucide="box" style="width: 16px; height: 16px;"></i>
+      <span>Storage</span>
+    </a>
   </nav>
   <div class="sidebar-footer">
     <!-- About System & Creator Info (Above Dominic profile) -->

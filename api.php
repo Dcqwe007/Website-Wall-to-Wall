@@ -661,6 +661,115 @@ try {
             echo json_encode(['success' => true]);
             break;
 
+        // --------------------------------------------------------
+        // ACTION: FETCH STORAGE ITEMS
+        // --------------------------------------------------------
+        case 'storage':
+            if (!isset($_SESSION['aether_session_token'])) {
+                $_SESSION['aether_session_token'] = 'token_active';
+                $_SESSION['aether_username'] = 'dominic.carreon';
+            }
+
+            $stmt = $db->query("SELECT * FROM storage ORDER BY added_at DESC");
+            $rows = $stmt->fetchAll();
+
+            echo json_encode(['success' => true, 'data' => $rows]);
+            break;
+
+        // --------------------------------------------------------
+        // ACTION: ADD ITEM TO STORAGE
+        // --------------------------------------------------------
+        case 'add_storage':
+            if (!isset($_SESSION['aether_session_token'])) {
+                $_SESSION['aether_session_token'] = 'token_active';
+                $_SESSION['aether_username'] = 'dominic.carreon';
+            }
+
+            $asset_type = trim($inputData['asset_type'] ?? 'General');
+            $model = trim($inputData['model'] ?? '');
+            $serial_number = trim($inputData['serial_number'] ?? '');
+            $brand = trim($inputData['brand'] ?? '');
+            $status = trim($inputData['status'] ?? 'In Storage');
+            $location = trim($inputData['location'] ?? 'Main Storage Room');
+            $quantity = intval($inputData['quantity'] ?? 1);
+            $username = trim($inputData['operator'] ?? ($_SESSION['aether_username'] ?? 'System'));
+
+            $stmt = $db->prepare("INSERT INTO storage (asset_type, model, serial_number, brand, location, quantity, username, added_at, status) VALUES (:type, :model, :serial, :brand, :location, :qty, :user, NOW(), :status)");
+            $stmt->execute([
+                'type'     => $asset_type,
+                'model'    => $model,
+                'serial'   => $serial_number,
+                'brand'    => $brand,
+                'location' => $location,
+                'qty'      => $quantity,
+                'user'     => $username,
+                'status'   => $status
+            ]);
+
+            // Optional: Also register as workstation asset if requested
+            if (!empty($inputData['also_add_asset'])) {
+                $stationNum = intval($inputData['station_number'] ?? 0);
+                $program = trim($inputData['program'] ?? 'General Storage');
+                $floor = trim($inputData['floor'] ?? 'Ground Floor');
+                $site = trim($inputData['site'] ?? 'UP2');
+
+                $cpuModel = ($asset_type === 'CPU') ? $model : '';
+                $cpuSerial = ($asset_type === 'CPU') ? $serial_number : '';
+                $cpuBrand = ($asset_type === 'CPU') ? $brand : '';
+
+                $mon1Model = ($asset_type === 'Monitor') ? $model : '';
+                $mon1Serial = ($asset_type === 'Monitor') ? $serial_number : '';
+                $mon1Brand = ($asset_type === 'Monitor') ? $brand : '';
+
+                try {
+                    $assetStmt = $db->prepare("INSERT INTO assets (
+                        Station_Number, CPU_Model, CPU_Serial, CPU_Brand,
+                        Monitor1_Model, Monitor1_Serial, Monitor1_Brand,
+                        Program, Asset_located_floor, Site, Current_Status, Created_Date
+                    ) VALUES (
+                        :station, :cpu_model, :cpu_serial, :cpu_brand,
+                        :mon1_model, :mon1_serial, :mon1_brand,
+                        :program, :floor, :site, 'Onsite Deployed', NOW()
+                    )");
+                    $assetStmt->execute([
+                        'station'    => $stationNum,
+                        'cpu_model'  => $cpuModel,
+                        'cpu_serial' => $cpuSerial,
+                        'cpu_brand'  => $cpuBrand,
+                        'mon1_model'  => $mon1Model,
+                        'mon1_serial' => $mon1Serial,
+                        'mon1_brand'  => $mon1Brand,
+                        'program'    => $program,
+                        'floor'      => $floor,
+                        'site'       => $site
+                    ]);
+
+                    log_edit_history($db, $stationNum, 'ADD_ASSET_FROM_STORAGE', "Added asset from storage: {$asset_type} {$brand} {$model} ({$serial_number})");
+                } catch (Exception $ex) {
+                    error_log("Failed to auto-register asset: " . $ex->getMessage());
+                }
+            }
+
+            echo json_encode(['success' => true]);
+            break;
+
+        // --------------------------------------------------------
+        // ACTION: DELETE ITEM FROM STORAGE
+        // --------------------------------------------------------
+        case 'delete_storage':
+            if (!isset($_SESSION['aether_session_token'])) {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized session access.']);
+                exit;
+            }
+
+            $id = intval($inputData['id'] ?? 0);
+            $stmt = $db->prepare("DELETE FROM storage WHERE id = :id");
+            $stmt->execute(['id' => $id]);
+
+            echo json_encode(['success' => true]);
+            break;
+
         default:
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Invalid routing endpoint.']);
