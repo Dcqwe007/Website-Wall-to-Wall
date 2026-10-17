@@ -779,3 +779,15 @@ try {
     echo json_encode(['success' => false, 'message' => 'API System Failure: ' . $e->getMessage()]);
 }
 ?>
+            }
+            break;
+
+        default:
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Invalid routing endpoint.']);
+    }
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'API System Failure: ' . $e->getMessage()]);
+}
+?>
