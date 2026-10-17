@@ -618,7 +618,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const historyTableBody = document.getElementById('history-table-body');
       const emptyMessage = document.getElementById('table-empty-message');
       const emptyMessageText = document.getElementById('empty-message-text');
-
+      
       if (!historyTableBody) return;
       historyTableBody.innerHTML = '';
 
@@ -667,7 +667,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         filtered.forEach(item => {
           const tr = document.createElement('tr');
-
+          
           let badgeClass = 'badge-other';
           if (item.action_type === 'Add') badgeClass = 'badge-deployed';
           else if (item.action_type === 'Edit') badgeClass = 'badge-onsite';
@@ -780,7 +780,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const inventoryTableBody = document.getElementById('inventory-table-body');
       const emptyMessage = document.getElementById('table-empty-message');
       const emptyMessageText = document.getElementById('empty-message-text');
-
+      
       if (!inventoryTableBody) return;
       inventoryTableBody.innerHTML = '';
 
@@ -852,7 +852,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 hour12: true
               });
             }
-          } catch (e) { }
+          } catch (e) {}
 
           let displayAssetType = item.asset_type;
           if (displayAssetType && displayAssetType.startsWith('Monitor')) {
@@ -886,19 +886,19 @@ document.addEventListener('DOMContentLoaded', () => {
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ id: parseInt(id) })
                 })
-                  .then(res => res.json())
-                  .then(data => {
-                    if (data.success) {
-                      showToast("Asset Scrapped", "Item removed from inventory.", "success");
-                      fetchInventoryFromDatabase();
-                    } else {
-                      showToast("Action Failed", "Could not remove item.", "danger");
-                    }
-                  })
-                  .catch(err => {
-                    showToast("Server Connection Error", "Check XAMPP connection.", "danger");
-                    console.error(err);
-                  });
+                .then(res => res.json())
+                .then(data => {
+                  if (data.success) {
+                    showToast("Asset Scrapped", "Item removed from inventory.", "success");
+                    fetchInventoryFromDatabase();
+                  } else {
+                    showToast("Action Failed", "Could not remove item.", "danger");
+                  }
+                })
+                .catch(err => {
+                  showToast("Server Connection Error", "Check XAMPP connection.", "danger");
+                  console.error(err);
+                });
               }
             });
           }
@@ -1063,15 +1063,15 @@ document.addEventListener('DOMContentLoaded', () => {
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ id: item.id })
                 })
-                  .then(res => res.json())
-                  .then(res => {
-                    if (res.success) {
-                      showToast("Storage Item Removed", "Item removed from storage inventory.", "success");
-                      fetchStorageFromDatabase();
-                    } else {
-                      showToast("Action Failed", res.message || "Could not remove item.", "danger");
-                    }
-                  });
+                .then(res => res.json())
+                .then(res => {
+                  if (res.success) {
+                    showToast("Storage Item Removed", "Item removed from storage inventory.", "success");
+                    fetchStorageFromDatabase();
+                  } else {
+                    showToast("Action Failed", res.message || "Could not remove item.", "danger");
+                  }
+                });
               }
             });
           }
@@ -1143,8 +1143,8 @@ document.addEventListener('DOMContentLoaded', () => {
       let filtered = assetsList.filter(asset => {
         if (selectedAsset === 'CPU') {
           const hasCpu = (asset.CPU_Model && asset.CPU_Model.trim() !== '' && asset.CPU_Model.trim() !== '-') ||
-            (asset.CPU_Serial && asset.CPU_Serial.trim() !== '' && asset.CPU_Serial.trim() !== '-') ||
-            (asset.CPU_Brand && asset.CPU_Brand.trim() !== '' && asset.CPU_Brand.trim() !== '-');
+                         (asset.CPU_Serial && asset.CPU_Serial.trim() !== '' && asset.CPU_Serial.trim() !== '-') ||
+                         (asset.CPU_Brand && asset.CPU_Brand.trim() !== '' && asset.CPU_Brand.trim() !== '-');
           if (!hasCpu) return false;
         } else if (selectedAsset === 'Monitor') {
           const hasMonitor = [
@@ -2134,19 +2134,19 @@ document.addEventListener('DOMContentLoaded', () => {
               site: site
             })
           })
-            .then(res => res.json())
-            .then(res => {
-              if (res.success) {
-                const msg = alsoAddAsset ? "New storage item logged & registered as workstation asset!" : "New item logged into storage inventory.";
-                showToast("Storage Item Saved", msg, "success");
-                closeModal(modalAddStorage);
-                formAddStorage.reset();
-                if (storageAssetDetailsPanel) storageAssetDetailsPanel.style.display = 'none';
-                fetchStorageFromDatabase();
-              } else {
-                showToast("Add Failed", res.message || "Failed to log item into storage.", "danger");
-              }
-            });
+          .then(res => res.json())
+          .then(res => {
+            if (res.success) {
+              const msg = alsoAddAsset ? "New storage item logged & registered as workstation asset!" : "New item logged into storage inventory.";
+              showToast("Storage Item Saved", msg, "success");
+              closeModal(modalAddStorage);
+              formAddStorage.reset();
+              if (storageAssetDetailsPanel) storageAssetDetailsPanel.style.display = 'none';
+              fetchStorageFromDatabase();
+            } else {
+              showToast("Add Failed", res.message || "Failed to log item into storage.", "danger");
+            }
+          });
         });
       }
 
