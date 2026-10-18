@@ -585,7 +585,7 @@ session_write_close();
 
       <!-- Left footer -->
       <div class="left-footer">
-        <span class="left-footer-copy">© 2026 Wall to Wall IT Systems</span>
+        <span class="left-footer-copy">© IT Wall to Wall Monitoring System 2026</span>
         <div class="cnx-badge">
           <span class="cnx-badge-dot"></span>
           Created by Dominic Carreon (IT Representative)
