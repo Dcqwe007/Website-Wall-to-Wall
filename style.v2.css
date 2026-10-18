@@ -1643,3 +1643,53 @@ th.sorted-desc .sort-indicator::after {
   transform: translateY(-3px) scale(1.01);
   box-shadow: 0 6px 16px rgba(0, 59, 92, 0.08);
 }
+
+/* ==========================================
+   STORAGE BULK EXCEL IMPORT STYLES
+   ========================================== */
+.btn-bulk-storage:hover {
+  background: #002B3D !important;
+  border-color: #25E2CC !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 2px 8px rgba(37, 226, 204, 0.25);
+  transform: translateY(-1px);
+}
+
+.storage-drop-zone {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.storage-drop-zone:hover {
+  background: rgba(37, 226, 204, 0.08) !important;
+  border-color: #003D5B !important;
+}
+
+.storage-drop-zone.dragover {
+  background: rgba(37, 226, 204, 0.18) !important;
+  border-color: #003D5B !important;
+  box-shadow: 0 0 0 4px rgba(37, 226, 204, 0.2);
+  transform: scale(1.01);
+}
+
+#storage-bulk-preview-table th {
+  position: sticky;
+  top: 0;
+  background: #F1F5F9;
+  z-index: 10;
+  font-size: 11px;
+  color: #003D5B;
+  font-weight: 700;
+  border-bottom: 2px solid #CBD5E1;
+}
+
+#storage-bulk-preview-table td {
+  padding: 6px 10px;
+  font-size: 11px;
+  border-bottom: 1px solid #E2E8F0;
+  white-space: nowrap;
+}
+
+#storage-bulk-preview-table tr:hover td {
+  background-color: rgba(37, 226, 204, 0.05);
+}
+
