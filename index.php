@@ -890,6 +890,6 @@ if (isset($_SESSION['aether_session_token'])) {
     </div>
   </div>
 
-  <script src="app.js?v=1.5"></script>
+  <script src="app.js?v=1.6"></script>
 </body>
 </html>

@@ -27,6 +27,15 @@ document.addEventListener('DOMContentLoaded', () => {
   let assetsList = [];
   let homeProgramChart = null;
 
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   function loadPortalOverview() {
     fetch('api.php?action=fetch')
       .then(res => {
@@ -35,7 +44,11 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .then(res => {
         if (res.success) {
-          assetsList = res.data || [];
+          assetsList = (res.data || []).map(asset => ({
+            ...asset,
+            Program: asset.Program ?? asset.program,
+            Current_Status: asset.Current_Status ?? asset.current_status
+          }));
           assetsList.forEach(a => {
             if (a.Current_Status === 'Deployed') {
               a.Current_Status = 'Onsite Deployed';
@@ -66,16 +79,45 @@ document.addEventListener('DOMContentLoaded', () => {
     if (pulledEl) pulledEl.textContent = pulled;
   }
 
+  function getProgramCounts() {
+    const programCounts = {};
+    assetsList.forEach(asset => {
+      const program = (asset.Program || '').toString().trim() || 'Unassigned';
+      programCounts[program] = (programCounts[program] || 0) + 1;
+    });
+    return programCounts;
+  }
+
+  function renderProgramCounts(programCounts) {
+    const countsEl = document.getElementById('home-program-counts');
+    if (!countsEl) return;
+
+    const programs = Object.keys(programCounts).sort((a, b) => {
+      if (a === 'Unassigned') return 1;
+      if (b === 'Unassigned') return -1;
+      return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+    });
+
+    if (programs.length === 0) {
+      countsEl.innerHTML = '<span style="grid-column: 1 / -1; color: #64748B; font-size: 12px;">No program data available.</span>';
+      return;
+    }
+
+    countsEl.innerHTML = programs.map(program => `
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; border: 1px solid #D8E4E8; border-radius: 4px; background: #F8FAFC; font-size: 11px;">
+        <span style="color: #003D5B; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(program)}</span>
+        <strong style="color: #003D5B; background: #D9F8F3; border-radius: 10px; padding: 2px 7px;">${programCounts[program]}</strong>
+      </div>
+    `).join('');
+  }
+
   function renderHomeChart() {
     const canvasEl = document.getElementById('home-program-chart');
     if (!canvasEl) return;
 
     // Group assets by program dynamically
-    const programCounts = {};
-    assetsList.forEach(asset => {
-      const prog = asset.Program || 'Unassigned';
-      programCounts[prog] = (programCounts[prog] || 0) + 1;
-    });
+    const programCounts = getProgramCounts();
+    renderProgramCounts(programCounts);
 
     const sortedPrograms = Object.keys(programCounts).sort();
     const chartLabels = sortedPrograms;

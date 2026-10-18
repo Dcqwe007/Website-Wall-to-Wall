@@ -145,6 +145,10 @@ session_write_close();
             <div style="position: relative; height: 200px; width: 100%; display: flex; align-items: center; justify-content: center; margin-top: 10px;">
               <canvas id="home-program-chart"></canvas>
             </div>
+            <div id="home-program-counts" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; margin-top: 12px;">
+              <span style="grid-column: 1 / -1; color: #64748B; font-size: 12px;">Loading program counts...</span>
+            </div>
+
           </div>
 
         </div>
@@ -162,6 +166,6 @@ session_write_close();
     // Lucide Icon activation
     lucide.createIcons();
   </script>
-  <script src="home.js?v=1.3"></script>
+  <script src="home.js?v=1.4"></script>
 </body>
 </html>

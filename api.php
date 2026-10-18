@@ -69,7 +69,7 @@ try {
         // ACTION: LOGIN AUTHENTICATION
         // --------------------------------------------------------
         case 'login':
-            $loginInput = trim($inputData['email'] ?? ''); // Maps to email OR username
+            $loginInput = strtolower(trim((string) ($inputData['email'] ?? ''))); // Maps to email OR username
             $password = $inputData['password'] ?? '';
 
             if (empty($loginInput) || empty($password)) {
@@ -78,7 +78,7 @@ try {
             }
 
             // Query by email OR username matching user screenshots
-            $stmt = $db->prepare("SELECT * FROM users WHERE email = :login1 OR username = :login2 LIMIT 1");
+            $stmt = $db->prepare("SELECT * FROM users WHERE LOWER(TRIM(email)) = :login1 OR LOWER(TRIM(username)) = :login2 LIMIT 1");
             $stmt->execute(['login1' => $loginInput, 'login2' => $loginInput]);
             $user = $stmt->fetch();
 
@@ -109,8 +109,8 @@ try {
         // ACTION: USER SIGN UP
         // --------------------------------------------------------
         case 'signup':
-            $username = trim($inputData['username'] ?? '');
-            $email = trim($inputData['email'] ?? '');
+            $username = strtolower(trim((string) ($inputData['username'] ?? '')));
+            $email = strtolower(trim((string) ($inputData['email'] ?? '')));
             $password = $inputData['password'] ?? '';
             $confirmPassword = $inputData['confirm_password'] ?? '';
 
@@ -258,7 +258,7 @@ try {
             break;
 
         // --------------------------------------------------------
-        // ACTION: EDIT ASSET
+        // ACTION: BULK ADD ASSETS
         // --------------------------------------------------------
         case 'bulk_add_assets':
             if (!isset($_SESSION['aether_session_token'])) {
@@ -273,21 +273,29 @@ try {
                 exit;
             }
 
-            $columns = [
-                'Station_Number', 'CPU_Model', 'CPU_Serial', 'CPU_Brand',
-                'Monitor1_Model', 'Monitor1_Serial', 'Monitor1_Brand',
-                'Monitor2_Model', 'Monitor2_Serial', 'Monitor2_Brand',
-                'Monitor3_Model', 'Monitor3_Serial', 'Monitor3_Brand',
-                'Program', 'Asset_located_floor', 'Site', 'Current_Status'
-            ];
-            $insertSql = "INSERT INTO assets (" . implode(', ', $columns) . ", Created_Date)
-                          VALUES (:" . implode(', :', $columns) . ", NOW())";
+            $insertSql = "INSERT INTO assets (
+                            station_number, serial_number, model_of_asset, brand_of_asset, type_of_asset,
+                            program, asset_located_floor, site, current_status,
+                            CPU_Model, CPU_Serial, CPU_Brand,
+                            Monitor1_Model, Monitor1_Serial, Monitor1_Brand,
+                            Monitor2_Model, Monitor2_Serial, Monitor2_Brand,
+                            Monitor3_Model, Monitor3_Serial, Monitor3_Brand, created_date
+                          ) VALUES (
+                            :station, :serial, :model, :brand, :type,
+                            :program, :floor, :site, :status,
+                            :cpu_model, :cpu_serial, :cpu_brand,
+                            :mon1_model, :mon1_serial, :mon1_brand,
+                            :mon2_model, :mon2_serial, :mon2_brand,
+                            :mon3_model, :mon3_serial, :mon3_brand, NOW()
+                          )";
 
             try {
                 $db->beginTransaction();
-                $checkStmt = $db->prepare("SELECT COUNT(*) FROM assets WHERE Station_Number = :station");
+                $checkStationStmt = $db->prepare("SELECT COUNT(*) FROM assets WHERE station_number = :station");
+                $checkSerialStmt = $db->prepare("SELECT COUNT(*) FROM assets WHERE serial_number = :serial");
                 $insertStmt = $db->prepare($insertSql);
                 $seenStations = [];
+                $seenSerials = [];
 
                 foreach ($items as $index => $item) {
                     $station = filter_var($item['Station_Number'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
@@ -298,22 +306,60 @@ try {
                         throw new Exception('Station_Number ' . $station . ' appears more than once.');
                     }
                     $seenStations[$station] = true;
-                    $checkStmt->execute(['station' => $station]);
-                    if ((int) $checkStmt->fetchColumn() > 0) {
+                    $serial = trim((string) ($item['CPU_Serial'] ?? ''));
+                    if ($serial === '') {
+                        $serial = trim((string) ($item['Monitor1_Serial'] ?? ''));
+                    }
+                    if ($serial === '') {
+                        $serial = trim((string) ($item['Monitor2_Serial'] ?? ''));
+                    }
+                    if ($serial === '') {
+                        $serial = trim((string) ($item['Monitor3_Serial'] ?? ''));
+                    }
+                    if ($serial === '') {
+                        throw new Exception('Row ' . ($index + 2) . ' must include CPU_Serial or a monitor serial number.');
+                    }
+                    if (isset($seenSerials[$serial])) {
+                        throw new Exception('Serial number ' . $serial . ' appears more than once.');
+                    }
+                    $seenSerials[$serial] = true;
+
+                    $checkStationStmt->execute(['station' => $station]);
+                    if ((int) $checkStationStmt->fetchColumn() > 0) {
                         throw new Exception('Station Number ' . $station . ' already exists.');
                     }
+                    $checkSerialStmt->execute(['serial' => $serial]);
+                    if ((int) $checkSerialStmt->fetchColumn() > 0) {
+                        throw new Exception('Serial number ' . $serial . ' already exists.');
+                    }
 
-                    $params = [];
-                    foreach ($columns as $column) {
-                        $params[$column] = $column === 'Station_Number'
-                            ? $station
-                            : trim((string) ($item[$column] ?? ''));
-                    }
-                    if ($params['Current_Status'] === '') {
-                        $params['Current_Status'] = 'Onsite Deployed';
-                    }
+                    $cpuModel = trim((string) ($item['CPU_Model'] ?? ''));
+                    $cpuBrand = trim((string) ($item['CPU_Brand'] ?? ''));
+                    $params = [
+                        'station' => $station,
+                        'serial' => $serial,
+                        'model' => $cpuModel !== '' ? $cpuModel : trim((string) ($item['Monitor1_Model'] ?? '')),
+                        'brand' => $cpuBrand !== '' ? $cpuBrand : trim((string) ($item['Monitor1_Brand'] ?? '')),
+                        'type' => $cpuModel !== '' ? 'CPU' : 'Monitor',
+                        'program' => trim((string) ($item['Program'] ?? '')),
+                        'floor' => trim((string) ($item['Asset_located_floor'] ?? '')),
+                        'site' => trim((string) ($item['Site'] ?? '')),
+                        'status' => trim((string) ($item['Current_Status'] ?? 'Onsite Deployed')) ?: 'Onsite Deployed',
+                        'cpu_model' => $cpuModel,
+                        'cpu_serial' => trim((string) ($item['CPU_Serial'] ?? '')),
+                        'cpu_brand' => $cpuBrand,
+                        'mon1_model' => trim((string) ($item['Monitor1_Model'] ?? '')),
+                        'mon1_serial' => trim((string) ($item['Monitor1_Serial'] ?? '')),
+                        'mon1_brand' => trim((string) ($item['Monitor1_Brand'] ?? '')),
+                        'mon2_model' => trim((string) ($item['Monitor2_Model'] ?? '')),
+                        'mon2_serial' => trim((string) ($item['Monitor2_Serial'] ?? '')),
+                        'mon2_brand' => trim((string) ($item['Monitor2_Brand'] ?? '')),
+                        'mon3_model' => trim((string) ($item['Monitor3_Model'] ?? '')),
+                        'mon3_serial' => trim((string) ($item['Monitor3_Serial'] ?? '')),
+                        'mon3_brand' => trim((string) ($item['Monitor3_Brand'] ?? ''))
+                    ];
                     $insertStmt->execute($params);
-                    log_edit_history($db, $station, 'Bulk Add', "Asset added by bulk import (CPU Model: '" . $params['CPU_Model'] . "', CPU Serial: '" . $params['CPU_Serial'] . "')");
+                    log_edit_history($db, $station, 'Bulk Add', "Asset added by bulk import (Model: '" . $params['model'] . "', Serial: '" . $serial . "')");
                 }
 
                 cleanup_inventory($db);

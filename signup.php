@@ -712,6 +712,6 @@ session_write_close();
     </div>
   </div>
 
-  <script src="app.js?v=1.5"></script>
+  <script src="app.js?v=1.6"></script>
 </body>
 </html>

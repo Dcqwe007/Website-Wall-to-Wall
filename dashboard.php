@@ -60,7 +60,7 @@ session_write_close();
         <button class="btn-action" id="btn-delete" disabled>Delete</button>
         <button class="btn-action" id="btn-add">Add</button>
         <button class="btn-action" id="btn-bulk-assets" type="button" style="background: #003D5B; color: #25E2CC; border: 1px solid #25E2CC; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;" title="Bulk import Wall-to-Wall assets from Excel or CSV">
-          <i data-lucide="file-spreadsheet" style="width: 14px; height: 14px;"></i>Bulk Excel
+          <i data-lucide="file-spreadsheet" style="width: 14px; height: 14px;"></i>Bulk Import Assets
         </button>
         <button class="btn-action" id="btn-edit" disabled>Edit</button>
         <button class="btn-action" id="btn-update-status" disabled>Update Status</button>

@@ -221,8 +221,8 @@ document.addEventListener('DOMContentLoaded', () => {
     signupForm.addEventListener('submit', (e) => {
       e.preventDefault();
 
-      const usernameInput = document.getElementById('signup-username').value.trim();
-      const emailInput = document.getElementById('signup-email').value.trim();
+      const usernameInput = document.getElementById('signup-username').value.trim().toLowerCase();
+      const emailInput = document.getElementById('signup-email').value.trim().toLowerCase();
       const passwordInput = signupPassword.value;
       const confirmPasswordInput = signupConfirmPassword.value;
 
@@ -272,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(res => res.json())
         .then(data => {
           if (data.success) {
-            successMessage.textContent = "Account created successfully! Redirecting to login...";
+            successMessage.textContent = "Account created successfully! Use your username or email and password to sign in.";
             successAlert.style.display = 'flex';
 
             signupForm.reset();
@@ -572,7 +572,28 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .then(res => {
           if (res.success) {
-            assetsList = res.data || [];
+            assetsList = (res.data || []).map(asset => ({
+              ...asset,
+              Station_Number: asset.Station_Number ?? asset.station_number,
+              CPU_Model: asset.CPU_Model ?? asset.cpu_model,
+              CPU_Serial: asset.CPU_Serial ?? asset.cpu_serial,
+              CPU_Brand: asset.CPU_Brand ?? asset.cpu_brand,
+              Monitor1_Model: asset.Monitor1_Model ?? asset.monitor1_model,
+              Monitor1_Serial: asset.Monitor1_Serial ?? asset.monitor1_serial,
+              Monitor1_Brand: asset.Monitor1_Brand ?? asset.monitor1_brand,
+              Monitor2_Model: asset.Monitor2_Model ?? asset.monitor2_model,
+              Monitor2_Serial: asset.Monitor2_Serial ?? asset.monitor2_serial,
+              Monitor2_Brand: asset.Monitor2_Brand ?? asset.monitor2_brand,
+              Monitor3_Model: asset.Monitor3_Model ?? asset.monitor3_model,
+              Monitor3_Serial: asset.Monitor3_Serial ?? asset.monitor3_serial,
+              Monitor3_Brand: asset.Monitor3_Brand ?? asset.monitor3_brand,
+              Program: asset.Program ?? asset.program,
+              Asset_located_floor: asset.Asset_located_floor ?? asset.asset_located_floor,
+              Site: asset.Site ?? asset.site,
+              Current_Status: asset.Current_Status ?? asset.current_status,
+              Created_Date: asset.Created_Date ?? asset.created_date,
+              Modified_Date: asset.Modified_Date ?? asset.modified_date
+            }));
             assetsList.forEach(a => {
               if (a.Current_Status === 'Deployed') {
                 a.Current_Status = 'Onsite Deployed';
@@ -585,6 +606,7 @@ document.addEventListener('DOMContentLoaded', () => {
           } else {
             showToast("Fetch Error", res.message || "Failed to fetch assets.", "danger");
           }
+
         })
         .catch(err => {
           showToast("System Connection Error", "Could not connect to database API. Check XAMPP MySQL.", "danger");
@@ -2700,14 +2722,22 @@ document.addEventListener('DOMContentLoaded', () => {
           if (!/^\d+$/.test(row.Station_Number) || Number(row.Station_Number) <= 0) {
             throw new Error(`Row ${index + 2} has an invalid Station_Number.`);
           }
+          const primarySerial = row.CPU_Serial || row.Monitor1_Serial || row.Monitor2_Serial || row.Monitor3_Serial;
+          if (!primarySerial) {
+            throw new Error(`Row ${index + 2} must include CPU_Serial or a monitor serial number.`);
+          }
           row.Station_Number = Number(row.Station_Number);
           row.Current_Status = row.Current_Status || 'Onsite Deployed';
           rows.push(row);
         });
         const seen = new Set();
+        const seenSerials = new Set();
         rows.forEach(row => {
           if (seen.has(row.Station_Number)) throw new Error(`Station_Number ${row.Station_Number} appears more than once.`);
           seen.add(row.Station_Number);
+          const primarySerial = row.CPU_Serial || row.Monitor1_Serial || row.Monitor2_Serial || row.Monitor3_Serial;
+          if (seenSerials.has(primarySerial)) throw new Error(`Serial number ${primarySerial} appears more than once.`);
+          seenSerials.add(primarySerial);
         });
         return rows;
       };

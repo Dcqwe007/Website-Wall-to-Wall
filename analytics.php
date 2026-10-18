@@ -72,6 +72,29 @@ session_write_close();
 
         </div>
 
+        <!-- Section: Program Asset Counts -->
+        <div class="home-column-card" style="padding: 24px;">
+          <h3 class="card-section-title" style="margin-bottom: 4px;">
+            <i data-lucide="list-ordered" style="color: var(--bg-header-footer); width: 18px; height: 18px;"></i>
+            Asset Count by Wall-to-Wall Program
+          </h3>
+          <p class="card-section-desc" style="margin-bottom: 20px;">Exact workstation asset count assigned to every Wall-to-Wall program.</p>
+          <div style="overflow-x: auto;">
+            <table class="table-custom" style="width: 100%; border: 1px solid var(--border-color);">
+              <thead>
+                <tr style="background-color: var(--bg-th); color: #FFFFFF;">
+                  <th style="padding: 10px 14px;">Program</th>
+                  <th style="padding: 10px 14px;">Asset Count</th>
+                  <th style="padding: 10px 14px;">Percentage</th>
+                </tr>
+              </thead>
+              <tbody id="analytics-program-count-body" style="background-color: #FFFFFF;">
+                <tr><td colspan="3" style="text-align: center; padding: 20px; color: var(--color-text-muted);">Calculating program counts...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         <!-- Section: Detailed Stats Summary Matrix -->
         <div class="home-column-card" style="padding: 24px;">
           <h3 class="card-section-title" style="margin-bottom: 4px;">

@@ -1,5 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
 
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   /* ========================================================
      1. SHARED SIDEBAR LOGOUT CONTROL
      ======================================================== */
@@ -36,17 +45,59 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .then(res => {
         if (res.success) {
-          assetsList = res.data || [];
+          assetsList = (res.data || []).map(asset => ({
+            ...asset,
+            Program: asset.Program ?? asset.program,
+            Current_Status: asset.Current_Status ?? asset.current_status,
+            CPU_Model: asset.CPU_Model ?? asset.cpu_model,
+            CPU_Brand: asset.CPU_Brand ?? asset.cpu_brand
+          }));
           assetsList.forEach(a => {
             if (a.Current_Status === 'Deployed') {
               a.Current_Status = 'Onsite Deployed';
             }
           });
           renderProgramShareChart();
+          renderProgramCountTable();
           renderStatusBreakdownChart();
           populateSummaryMatrix();
         } else {
           console.error("Reports loading error: ", res.message);
+        }
+
+        function renderProgramCountTable() {
+          const summaryBody = document.getElementById('analytics-program-count-body');
+          if (!summaryBody) return;
+
+          const programCounts = {};
+          assetsList.forEach(asset => {
+            const program = (asset.Program || '').toString().trim() || 'Unassigned';
+            programCounts[program] = (programCounts[program] || 0) + 1;
+          });
+
+          const programs = Object.keys(programCounts).sort((a, b) => {
+            if (a === 'Unassigned') return 1;
+            if (b === 'Unassigned') return -1;
+            return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+          });
+          const total = assetsList.length;
+
+          if (!programs.length) {
+            summaryBody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px; color: var(--color-text-muted);">No asset records found in database.</td></tr>';
+            return;
+          }
+
+          summaryBody.innerHTML = programs.map(program => {
+            const count = programCounts[program];
+            const percentage = total ? ((count / total) * 100).toFixed(1) : '0.0';
+            return `
+              <tr>
+                <td style="padding: 10px 14px; font-weight: 600;">${escapeHtml(program)}</td>
+                <td style="padding: 10px 14px;">${count}</td>
+                <td style="padding: 10px 14px;">${percentage}%</td>
+              </tr>
+            `;
+          }).join('');
         }
       })
       .catch(err => {
