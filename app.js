@@ -1002,7 +1002,7 @@ document.addEventListener('DOMContentLoaded', () => {
       filtered.sort((a, b) => {
         let valA = a[storageSortColumn];
         let valB = b[storageSortColumn];
-        if (storageSortColumn === 'quantity' || storageSortColumn === 'id') {
+        if (storageSortColumn === 'id') {
           valA = parseInt(valA) || 0;
           valB = parseInt(valB) || 0;
         } else {
@@ -1043,7 +1043,6 @@ document.addEventListener('DOMContentLoaded', () => {
             <td>${htmlspecialchars(item.model || '-')}</td>
             <td><code style="background: rgba(0, 61, 91, 0.08); padding: 2px 6px; border-radius: 4px; font-weight: 600;">${htmlspecialchars(item.serial_number || '-')}</code></td>
             <td><span style="background: rgba(37, 226, 204, 0.15); color: #00665E; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">${htmlspecialchars(item.location || 'Main Storage')}</span></td>
-            <td><strong>${item.quantity || 1}</strong></td>
             <td>${htmlspecialchars(item.username || 'System')}</td>
             <td><span class="status-pill" style="padding: 3px 10px; border-radius: 12px; font-weight: 600; font-size: 11px; ${statusStyle}">${htmlspecialchars(item.status || 'In Storage')}</span></td>
             <td>
@@ -1094,7 +1093,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      const headers = ["ID", "Date Added", "Asset Type", "Brand", "Model", "Serial Number", "Location", "Quantity", "Operator", "Status"];
+      const headers = ["ID", "Date Added", "Asset Type", "Brand", "Model", "Serial Number", "Location", "Operator", "Status"];
       let csvContent = headers.join(",") + "\r\n";
 
       listToExport.forEach(item => {
@@ -1106,7 +1105,6 @@ document.addEventListener('DOMContentLoaded', () => {
           item.model,
           item.serial_number,
           item.location,
-          item.quantity,
           item.username,
           item.status
         ].map(val => {
@@ -1362,9 +1360,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalStatus = document.getElementById('modal-status');
     const modalDelete = document.getElementById('modal-delete');
     const modalAddStorage = document.getElementById('modal-add-storage');
+    const modalBulkStorage = document.getElementById('modal-bulk-storage');
 
-    function openModal(modal) { if (modal) modal.classList.add('open'); }
-    function closeModal(modal) { if (modal) modal.classList.remove('open'); }
+    function openModal(modal) {
+      if (modal) {
+        modal.classList.add('open');
+        modal.style.display = 'flex';
+      }
+    }
+    function closeModal(modal) {
+      if (modal) {
+        modal.classList.remove('open');
+        modal.style.display = 'none';
+      }
+    }
 
     function setupModalClose(modal, closeBtnId, cancelBtnId) {
       if (!modal) return;
@@ -1384,6 +1393,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupModalClose(modalStatus, 'btn-close-status', 'btn-cancel-status');
     setupModalClose(modalDelete, 'btn-close-delete-modal', 'btn-cancel-delete-modal');
     setupModalClose(modalAddStorage, 'btn-close-add-storage', 'btn-cancel-add-storage');
+    setupModalClose(modalBulkStorage, 'btn-close-bulk-storage', 'btn-cancel-bulk-storage');
 
     // Trigger Add Storage Modal
     const btnAddStorageItem = document.getElementById('btn-add-storage-item');
@@ -2037,8 +2047,10 @@ document.addEventListener('DOMContentLoaded', () => {
       // Swap export buttons
       const btnExportCsv = document.getElementById('btn-export-csv');
       const btnExportStorageCsv = document.getElementById('btn-export-storage-csv');
+      const btnFooterBulkStorage = document.getElementById('btn-footer-bulk-storage');
       if (btnExportCsv) btnExportCsv.style.display = 'none';
       if (btnExportStorageCsv) btnExportStorageCsv.style.display = 'inline-block';
+      if (btnFooterBulkStorage) btnFooterBulkStorage.style.display = 'inline-block';
 
       // Clear storage view banner button
       const btnClearStorageView = document.getElementById('btn-clear-storage-view');
@@ -2108,7 +2120,6 @@ document.addEventListener('DOMContentLoaded', () => {
           const status = document.getElementById('storage-status').value;
           const operator = document.getElementById('storage-operator').value;
           const location = document.getElementById('storage-location').value;
-          const qty = parseInt(document.getElementById('storage-qty').value) || 1;
           const alsoAddAsset = storageAlsoAddAsset ? storageAlsoAddAsset.checked : false;
           const stationNumber = document.getElementById('storage-asset-station')?.value || 0;
           const program = document.getElementById('storage-asset-program')?.value || '';
@@ -2126,7 +2137,7 @@ document.addEventListener('DOMContentLoaded', () => {
               status: status,
               operator: operator,
               location: location,
-              quantity: qty,
+              quantity: 1,
               also_add_asset: alsoAddAsset,
               station_number: stationNumber,
               program: program,
@@ -2145,6 +2156,411 @@ document.addEventListener('DOMContentLoaded', () => {
               fetchStorageFromDatabase();
             } else {
               showToast("Add Failed", res.message || "Failed to log item into storage.", "danger");
+            }
+          });
+        });
+      }
+
+      /* ========================================================
+         BULK IMPORT STORAGE ITEMS (Excel / CSV)
+         ======================================================== */
+      let storageBulkParsedData = [];
+
+      const btnBulkStorage = document.getElementById('btn-bulk-storage');
+      const dropZone = document.getElementById('storage-drop-zone');
+      const fileInput = document.getElementById('storage-excel-file-input');
+      const fileInfo = document.getElementById('storage-selected-file-info');
+      const fileNameEl = document.getElementById('storage-selected-file-name');
+      const fileSizeEl = document.getElementById('storage-selected-file-size');
+      const previewContainer = document.getElementById('storage-bulk-preview-container');
+      const previewBody = document.getElementById('storage-bulk-preview-body');
+      const bulkCountEl = document.getElementById('storage-bulk-count');
+      const btnClearBulkSelection = document.getElementById('btn-clear-bulk-selection');
+      const btnConfirmBulkImport = document.getElementById('btn-confirm-bulk-import');
+      const btnConfirmBulkText = document.getElementById('btn-confirm-bulk-text');
+
+      function resetBulkStorageModal() {
+        storageBulkParsedData = [];
+        if (fileInput) fileInput.value = '';
+        if (fileInfo) fileInfo.style.display = 'none';
+        if (previewContainer) previewContainer.style.display = 'none';
+        if (previewBody) previewBody.innerHTML = '';
+        if (bulkCountEl) bulkCountEl.textContent = '0';
+        if (btnConfirmBulkImport) {
+          btnConfirmBulkImport.disabled = true;
+          btnConfirmBulkImport.style.cursor = 'not-allowed';
+          btnConfirmBulkImport.style.opacity = '0.6';
+        }
+        if (btnConfirmBulkText) btnConfirmBulkText.textContent = 'Select Excel File';
+      }
+
+      if (btnBulkStorage && modalBulkStorage) {
+        btnBulkStorage.addEventListener('click', () => {
+          resetBulkStorageModal();
+          openModal(modalBulkStorage);
+        });
+      }
+
+      if (btnFooterBulkStorage && modalBulkStorage) {
+        btnFooterBulkStorage.addEventListener('click', () => {
+          resetBulkStorageModal();
+          openModal(modalBulkStorage);
+        });
+      }
+
+      if (btnClearBulkSelection) {
+        btnClearBulkSelection.addEventListener('click', () => {
+          resetBulkStorageModal();
+        });
+      }
+
+      // Sample template data
+      const sampleStorageRows = [
+        {
+          "Asset Type": "Monitor",
+          "Brand": "HP",
+          "Model": "ProDisplay P201",
+          "Serial Number": "3CQ4210W7V",
+          "Storage Location": "Main Storage Room",
+          "Status": "In Storage",
+          "Operator": "Dominic Carreon"
+        },
+        {
+          "Asset Type": "CPU",
+          "Brand": "Dell",
+          "Model": "OptiPlex 7050",
+          "Serial Number": "8B9X123",
+          "Storage Location": "Cabinet B-2",
+          "Status": "Working",
+          "Operator": "Dominic Carreon"
+        },
+        {
+          "Asset Type": "Monitor",
+          "Brand": "Samsung",
+          "Model": "S22E390H",
+          "Serial Number": "0LU4HTKQ100216B",
+          "Storage Location": "Main Storage Room",
+          "Status": "In Storage",
+          "Operator": "Dominic Carreon"
+        }
+      ];
+
+      function triggerDownloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      const btnDlXlsx = document.getElementById('btn-download-storage-template-xlsx');
+      const btnDlCsv = document.getElementById('btn-download-storage-template-csv');
+
+      function generateCsvTemplate() {
+        const headers = ["Asset Type", "Brand", "Model", "Serial Number", "Storage Location", "Status", "Operator"];
+        let csv = headers.join(",") + "\r\n";
+        sampleStorageRows.forEach(item => {
+          csv += [
+            `"${item["Asset Type"]}"`,
+            `"${item["Brand"]}"`,
+            `"${item["Model"]}"`,
+            `"${item["Serial Number"]}"`,
+            `"${item["Storage Location"]}"`,
+            `"${item["Status"]}"`,
+            `"${item["Operator"]}"`
+          ].join(",") + "\r\n";
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        triggerDownloadBlob(blob, "storage_bulk_import_template.csv");
+        showToast("Template Downloaded", "Sample CSV template downloaded successfully.", "success");
+      }
+
+      if (btnDlXlsx) {
+        btnDlXlsx.addEventListener('click', () => {
+          if (window.XLSX) {
+            try {
+              const ws = XLSX.utils.json_to_sheet(sampleStorageRows);
+              const wb = XLSX.utils.book_new();
+              XLSX.utils.book_append_sheet(wb, ws, "Storage_Template");
+              XLSX.writeFile(wb, "storage_bulk_import_template.xlsx");
+              showToast("Template Downloaded", "Sample Excel file (.xlsx) downloaded successfully.", "success");
+            } catch (ex) {
+              generateCsvTemplate();
+            }
+          } else {
+            generateCsvTemplate();
+          }
+        });
+      }
+
+      if (btnDlCsv) {
+        btnDlCsv.addEventListener('click', () => {
+          generateCsvTemplate();
+        });
+      }
+
+      // Dropzone & File Input Handlers
+      if (dropZone && fileInput) {
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+          dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          dropZone.classList.remove('dragover');
+          if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            handleSelectedBulkFile(e.dataTransfer.files[0]);
+          }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+          if (e.target.files && e.target.files.length > 0) {
+            handleSelectedBulkFile(e.target.files[0]);
+          }
+        });
+      }
+
+      function formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1048576).toFixed(1) + ' MB';
+      }
+
+      function handleSelectedBulkFile(file) {
+        const validExts = ['.xlsx', '.xls', '.csv'];
+        const fileName = file.name;
+        const ext = fileName.substring(fileName.lastIndexOf('.')).toLowerCase();
+
+        if (!validExts.includes(ext)) {
+          showToast("Unsupported File", "Please choose a valid Excel (.xlsx, .xls) or CSV (.csv) file.", "danger");
+          return;
+        }
+
+        if (fileNameEl) fileNameEl.textContent = fileName;
+        if (fileSizeEl) fileSizeEl.textContent = `(${formatFileSize(file.size)})`;
+        if (fileInfo) fileInfo.style.display = 'flex';
+
+        const reader = new FileReader();
+
+        if (ext === '.csv' && !window.XLSX) {
+          reader.onload = (e) => {
+            parseCsvText(e.target.result);
+          };
+          reader.readAsText(file);
+        } else {
+          reader.onload = (e) => {
+            try {
+              const data = new Uint8Array(e.target.result);
+              const workbook = XLSX.read(data, { type: 'array' });
+              const sheetName = workbook.SheetNames[0];
+              const worksheet = workbook.Sheets[sheetName];
+              const rawJson = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+              processParsedJson(rawJson);
+            } catch (err) {
+              showToast("Parse Error", "Could not parse Excel spreadsheet: " + err.message, "danger");
+            }
+          };
+          reader.readAsArrayBuffer(file);
+        }
+      }
+
+      function cleanColName(str) {
+        return (str || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+      }
+
+      function processParsedJson(rawRows) {
+        if (!rawRows || rawRows.length === 0) {
+          showToast("Empty File", "No data rows detected in the uploaded file.", "danger");
+          resetBulkStorageModal();
+          return;
+        }
+
+        const normalizedItems = [];
+
+        rawRows.forEach(row => {
+          const mapped = {};
+          Object.keys(row).forEach(k => {
+            const cleanKey = cleanColName(k);
+            mapped[cleanKey] = row[k];
+          });
+
+          const findVal = (aliases) => {
+            for (const alias of aliases) {
+              if (mapped[alias] !== undefined && mapped[alias] !== '') {
+                return String(mapped[alias]).trim();
+              }
+            }
+            for (const k of Object.keys(mapped)) {
+              for (const alias of aliases) {
+                if (k.includes(alias) && mapped[k] !== '') {
+                  return String(mapped[k]).trim();
+                }
+              }
+            }
+            return '';
+          };
+
+          const assetType = findVal(['assettype', 'type', 'typeofasset', 'category']) || 'General';
+          const brand = findVal(['brand', 'manufacturer', 'make', 'brandofasset']) || 'Unknown';
+          const model = findVal(['model', 'modelofasset', 'modelname']) || 'Standard';
+          const serial = findVal(['serialnumber', 'serial', 'serialno', 'sn', 'tag', 'tagno', 'assetid']) || '';
+          const location = findVal(['storagelocation', 'location', 'room', 'shelf', 'cabinet']) || '';
+          const qtyVal = parseInt(findVal(['quantity', 'qty', 'count', 'amount'])) || 1;
+          const status = findVal(['status', 'condition', 'state']) || '';
+          const operator = findVal(['operator', 'user', 'username', 'addedby', 'tech']) || '';
+
+          if (serial || model !== 'Standard' || brand !== 'Unknown' || assetType !== 'General') {
+            normalizedItems.push({
+              asset_type: assetType,
+              brand: brand,
+              model: model,
+              serial_number: serial,
+              location: location,
+              quantity: qtyVal,
+              status: status,
+              operator: operator
+            });
+          }
+        });
+
+        if (normalizedItems.length === 0) {
+          showToast("No Valid Rows", "Could not detect any valid equipment rows in this file.", "danger");
+          resetBulkStorageModal();
+          return;
+        }
+
+        storageBulkParsedData = normalizedItems;
+        renderBulkPreview(normalizedItems);
+      }
+
+      function parseCsvText(csvText) {
+        const lines = csvText.split(/\r\n|\n/).filter(line => line.trim() !== '');
+        if (lines.length < 2) {
+          showToast("Empty CSV", "The CSV file does not contain enough data rows.", "danger");
+          return;
+        }
+        const headers = lines[0].split(',').map(h => h.replace(/^["']|["']$/g, '').trim());
+        const rawJson = [];
+        for (let i = 1; i < lines.length; i++) {
+          const vals = lines[i].split(',').map(v => v.replace(/^["']|["']$/g, '').trim());
+          const obj = {};
+          headers.forEach((h, idx) => {
+            obj[h] = vals[idx] || '';
+          });
+          rawJson.push(obj);
+        }
+        processParsedJson(rawJson);
+      }
+
+      function renderBulkPreview(items) {
+        if (!previewBody || !previewContainer) return;
+        previewBody.innerHTML = '';
+
+        const defaultLoc = document.getElementById('bulk-default-location')?.value || 'Main Storage Room';
+        const defaultStat = document.getElementById('bulk-default-status')?.value || 'In Storage';
+
+        const displayItems = items.slice(0, 50);
+
+        displayItems.forEach((item, index) => {
+          const tr = document.createElement('tr');
+          const loc = item.location || defaultLoc;
+          const stat = item.status || defaultStat;
+          const serialDisplay = item.serial_number || '<em style="color: #94A3B8;">(Auto Tag)</em>';
+
+          tr.innerHTML = `
+            <td style="color: #64748B;">${index + 1}</td>
+            <td><strong>${htmlspecialchars(item.asset_type)}</strong></td>
+            <td>${htmlspecialchars(item.brand)}</td>
+            <td>${htmlspecialchars(item.model)}</td>
+            <td><code style="background: rgba(0, 61, 91, 0.08); padding: 2px 6px; border-radius: 4px; font-weight: 600;">${serialDisplay}</code></td>
+            <td><span style="font-size: 11px; background: rgba(37, 226, 204, 0.15); color: #00665E; padding: 2px 6px; border-radius: 4px;">${htmlspecialchars(loc)}</span></td>
+            <td><span style="font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #E2ECEB; color: #003D5B;">${htmlspecialchars(stat)}</span></td>
+          `;
+          previewBody.appendChild(tr);
+        });
+
+        if (items.length > 50) {
+          const trMore = document.createElement('tr');
+          trMore.innerHTML = `
+            <td colspan="7" style="text-align: center; color: #64748B; font-style: italic; background: #F8FAFC;">
+              ... and ${items.length - 50} more records ready for import.
+            </td>
+          `;
+          previewBody.appendChild(trMore);
+        }
+
+        if (bulkCountEl) bulkCountEl.textContent = items.length;
+        previewContainer.style.display = 'block';
+
+        if (btnConfirmBulkImport) {
+          btnConfirmBulkImport.disabled = false;
+          btnConfirmBulkImport.style.cursor = 'pointer';
+          btnConfirmBulkImport.style.opacity = '1';
+        }
+        if (btnConfirmBulkText) {
+          btnConfirmBulkText.textContent = `Import ${items.length} Item${items.length > 1 ? 's' : ''}`;
+        }
+        if (window.lucide) window.lucide.createIcons();
+      }
+
+      // Execute Bulk Import Submission
+      if (btnConfirmBulkImport) {
+        btnConfirmBulkImport.addEventListener('click', () => {
+          if (!storageBulkParsedData || storageBulkParsedData.length === 0) {
+            showToast("No Data", "Please select a valid Excel or CSV file first.", "danger");
+            return;
+          }
+
+          const defaultLocation = document.getElementById('bulk-default-location')?.value || 'Main Storage Room';
+          const defaultStatus = document.getElementById('bulk-default-status')?.value || 'In Storage';
+          const defaultOperator = document.getElementById('bulk-default-operator')?.value || 'Dominic Carreon';
+
+          btnConfirmBulkImport.disabled = true;
+          btnConfirmBulkImport.style.opacity = '0.7';
+          if (btnConfirmBulkText) btnConfirmBulkText.textContent = "Importing...";
+
+          fetch('api.php?action=bulk_add_storage', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              items: storageBulkParsedData,
+              default_location: defaultLocation,
+              default_status: defaultStatus,
+              default_operator: defaultOperator
+            })
+          })
+          .then(res => res.json())
+          .then(res => {
+            if (res.success) {
+              showToast("Bulk Import Completed", res.message || `Successfully imported ${res.count || storageBulkParsedData.length} items.`, "success");
+              closeModal(modalBulkStorage);
+              resetBulkStorageModal();
+              fetchStorageFromDatabase();
+            } else {
+              showToast("Import Failed", res.message || "Failed to import items into storage.", "danger");
+              btnConfirmBulkImport.disabled = false;
+              btnConfirmBulkImport.style.opacity = '1';
+              if (btnConfirmBulkText) {
+                btnConfirmBulkText.textContent = `Import ${storageBulkParsedData.length} Items`;
+              }
+            }
+          })
+          .catch(err => {
+            showToast("Network Error", "Could not complete bulk import request: " + err.message, "danger");
+            btnConfirmBulkImport.disabled = false;
+            btnConfirmBulkImport.style.opacity = '1';
+            if (btnConfirmBulkText) {
+              btnConfirmBulkText.textContent = `Import ${storageBulkParsedData.length} Items`;
             }
           });
         });

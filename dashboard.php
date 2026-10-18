@@ -13,13 +13,16 @@ session_write_close();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>IT Wall to Wall Monitoring System</title>
-  <link rel="stylesheet" href="style.v2.css?v=1.6">
+  <link rel="stylesheet" href="style.v2.css?v=1.7">
   
   <!-- CDN for Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- CDN for Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- CDN for Excel Parsing & Generation (SheetJS) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -88,13 +91,16 @@ session_write_close();
           <i data-lucide="search" class="search-icon" style="width: 15px; height: 15px;"></i>
         </div>
       </div>
-      <div class="filter-panel" id="storage-filters-panel" style="display: none; gap: 10px;">
+      <div class="filter-panel" id="storage-filters-panel" style="display: none; gap: 10px; flex-wrap: wrap; align-items: center;">
         <div class="search-box-wrapper">
           <input type="text" placeholder="Search storage..." class="search-box-input" id="storage-search-input">
           <i data-lucide="search" class="search-icon" style="width: 15px; height: 15px;"></i>
         </div>
-        <button class="btn-action" id="btn-add-storage-item" type="button" style="background: #25E2CC; color: #002B3D; border: none; font-weight: 600; padding: 6px 14px; border-radius: 4px; cursor: pointer;">
-          <i data-lucide="plus" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i>Add Storage Item
+        <button class="btn-action" id="btn-add-storage-item" type="button" style="background: #25E2CC; color: #002B3D; border: none; font-weight: 600; padding: 6px 14px; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+          <i data-lucide="plus" style="width: 14px; height: 14px;"></i>Add Storage Item
+        </button>
+        <button class="btn-action btn-bulk-storage" id="btn-bulk-storage" type="button" style="background: #003D5B; color: #25E2CC; border: 1px solid #25E2CC; font-weight: 600; padding: 6px 14px; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease;" title="Bulk import storage items from Excel or CSV file">
+          <i data-lucide="file-spreadsheet" style="width: 14px; height: 14px;"></i>Bulk Import Excel
         </button>
       </div>
     </div>
@@ -257,7 +263,6 @@ session_write_close();
             <th data-sort-storage="model">Model<span class="sort-indicator-storage"></span></th>
             <th data-sort-storage="serial_number">Serial Number / Tag<span class="sort-indicator-storage"></span></th>
             <th data-sort-storage="location">Storage Location<span class="sort-indicator-storage"></span></th>
-            <th data-sort-storage="quantity">Qty<span class="sort-indicator-storage"></span></th>
             <th data-sort-storage="username">Operator<span class="sort-indicator-storage"></span></th>
             <th data-sort-storage="status">Status<span class="sort-indicator-storage"></span></th>
             <th>Actions</th>
@@ -293,6 +298,9 @@ session_write_close();
         <button class="btn-footer" id="btn-export-history-csv" style="display: none;">Export History CSV</button>
         <button class="btn-footer" id="btn-export-inventory-csv" style="display: none;">Export Inventory CSV</button>
         <button class="btn-footer" id="btn-export-storage-csv" style="display: none;">Export Storage CSV</button>
+        <button class="btn-footer" id="btn-footer-bulk-storage" style="display: none; background: #003D5B; color: #25E2CC; border: 1px solid #25E2CC; font-weight: 600;">
+          <i data-lucide="file-spreadsheet" style="width: 13px; height: 13px; vertical-align: middle; margin-right: 4px; display: inline-block;"></i>Import Storage Excel
+        </button>
       </div>
     </footer>
 
@@ -616,10 +624,6 @@ session_write_close();
             <select class="modal-input-field" id="storage-asset-type" required>
               <option value="CPU">CPU</option>
               <option value="Monitor">Monitor</option>
-              <option value="Keyboard">Keyboard</option>
-              <option value="Mouse">Mouse</option>
-              <option value="Cable / Adapter">Cable / Adapter</option>
-              <option value="RAM / Component">RAM / Component</option>
               <option value="Other Hardware">Other Hardware</option>
             </select>
           </div>
@@ -648,13 +652,9 @@ session_write_close();
             <label class="form-label">Operator</label>
             <input type="text" class="modal-input-field" id="storage-operator" value="<?php echo htmlspecialchars($_SESSION['aether_username'] ?? 'Dominic Carreon'); ?>" required>
           </div>
-          <div class="form-group" style="margin-bottom: 0;">
+          <div class="form-group" style="margin-bottom: 0; grid-column: span 2;">
             <label class="form-label">Storage Location</label>
             <input type="text" class="modal-input-field" id="storage-location" value="Main Storage Room" placeholder="e.g. Cabinet A-1" required>
-          </div>
-          <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label">Quantity</label>
-            <input type="number" class="modal-input-field" id="storage-qty" value="1" min="1" required>
           </div>
         </div>
 
@@ -692,6 +692,112 @@ session_write_close();
           <button type="submit" class="btn-action btn-primary" style="width: auto; background-color: #25E2CC; color: #002B3D; border: none; font-weight: 600;">Save Storage Item</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal 6: Bulk Import Storage from Excel / CSV -->
+  <div class="modal-overlay" id="modal-bulk-storage">
+    <div class="glass-panel modal-card" style="max-width: 680px; width: 95%; max-height: 90vh; overflow-y: auto; padding: 24px;">
+      <div class="modal-header" style="margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+        <h2 class="modal-title" style="font-size: 17px; margin: 0; display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="file-spreadsheet" style="color: #25E2CC; width: 20px; height: 20px;"></i>
+          Bulk Import Storage Items (Excel / CSV)
+        </h2>
+        <button class="btn-modal-close" id="btn-close-bulk-storage" type="button" style="background: transparent; border: none; cursor: pointer;">
+          <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+        </button>
+      </div>
+
+      <!-- Instructions & Template Download Bar -->
+      <div style="background: rgba(0, 61, 91, 0.05); border: 1px solid rgba(0, 61, 91, 0.15); border-radius: 6px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+        <div style="font-size: 12px; color: #003D5B; line-height: 1.4;">
+          <strong>Excel Import:</strong> Upload an <code>.xlsx</code>, <code>.xls</code>, or <code>.csv</code> spreadsheet with columns: <strong>Asset Type</strong>, <strong>Brand</strong>, <strong>Model</strong>, <strong>Serial Number</strong>, <strong>Location</strong>, <strong>Status</strong>.
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button type="button" id="btn-download-storage-template-xlsx" class="btn-action" style="font-size: 11px; padding: 5px 10px; background: #25E2CC; color: #002B3D; border: none; font-weight: 600; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="Download ready-to-fill Excel template">
+            <i data-lucide="download" style="width: 12px; height: 12px;"></i>.XLSX Template
+          </button>
+          <button type="button" id="btn-download-storage-template-csv" class="btn-action" style="font-size: 11px; padding: 5px 10px; background: #E2ECEB; color: #003D5B; border: 1px solid #A8D8D5; font-weight: 600; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="Download CSV template">
+            <i data-lucide="file-text" style="width: 12px; height: 12px;"></i>.CSV Template
+          </button>
+        </div>
+      </div>
+
+      <!-- Drag & Drop Upload Zone -->
+      <div id="storage-drop-zone" class="storage-drop-zone" style="border: 2px dashed #25E2CC; border-radius: 8px; padding: 26px 16px; text-align: center; background: rgba(37, 226, 204, 0.04); cursor: pointer; transition: all 0.2s ease; margin-bottom: 16px;">
+        <input type="file" id="storage-excel-file-input" accept=".xlsx, .xls, .csv" style="display: none;">
+        <i data-lucide="upload-cloud" style="width: 38px; height: 38px; color: #003D5B; margin-bottom: 6px; display: inline-block;"></i>
+        <div style="font-weight: 600; color: #003D5B; font-size: 14px; margin-bottom: 3px;">
+          Choose or drag & drop Excel / CSV file here
+        </div>
+        <div style="font-size: 12px; color: #666;">
+          Supports Microsoft Excel (.xlsx, .xls) and CSV (.csv) files
+        </div>
+        <div id="storage-selected-file-info" style="display: none; margin-top: 10px; font-size: 13px; font-weight: 600; color: #059669; align-items: center; justify-content: center; gap: 6px;">
+          <i data-lucide="check-circle" style="width: 16px; height: 16px;"></i>
+          <span id="storage-selected-file-name">filename.xlsx</span>
+          <span id="storage-selected-file-size" style="color: #666; font-weight: normal; font-size: 11px;">(0 KB)</span>
+        </div>
+      </div>
+
+      <!-- Fallback Defaults Bar -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" style="font-size: 11px;">Default Location (if blank)</label>
+          <input type="text" class="modal-input-field" id="bulk-default-location" value="Main Storage Room" style="font-size: 12px;">
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" style="font-size: 11px;">Default Status (if blank)</label>
+          <select class="modal-input-field" id="bulk-default-status" style="font-size: 12px;">
+            <option value="In Storage">In Storage</option>
+            <option value="Working">Working</option>
+            <option value="For Repair">For Repair</option>
+            <option value="Disposal">Disposal</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" style="font-size: 11px;">Default Operator</label>
+          <input type="text" class="modal-input-field" id="bulk-default-operator" value="<?php echo htmlspecialchars($_SESSION['aether_username'] ?? 'Dominic Carreon'); ?>" style="font-size: 12px;">
+        </div>
+      </div>
+
+      <!-- Preview Section -->
+      <div id="storage-bulk-preview-container" style="display: none; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <span style="font-weight: 600; font-size: 13px; color: #003D5B;">
+            Preview Records (<span id="storage-bulk-count" style="color: #25E2CC; background: #003D5B; padding: 2px 7px; border-radius: 10px; font-size: 11px;">0</span> rows ready)
+          </span>
+          <button type="button" id="btn-clear-bulk-selection" style="background: none; border: none; color: #EF4444; font-size: 12px; cursor: pointer; text-decoration: underline;">
+            Clear File
+          </button>
+        </div>
+        <div style="max-height: 220px; overflow-y: auto; overflow-x: auto; border: 1px solid #E5E7EB; border-radius: 6px;">
+          <table class="table-custom" style="width: 100%; font-size: 12px;" id="storage-bulk-preview-table">
+            <thead>
+              <tr style="background: #F8FAFC;">
+                <th style="padding: 6px 10px;">#</th>
+                <th style="padding: 6px 10px;">Asset Type</th>
+                <th style="padding: 6px 10px;">Brand</th>
+                <th style="padding: 6px 10px;">Model</th>
+                <th style="padding: 6px 10px;">Serial / Tag</th>
+                <th style="padding: 6px 10px;">Location</th>
+                <th style="padding: 6px 10px;">Status</th>
+              </tr>
+            </thead>
+            <tbody id="storage-bulk-preview-body">
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Modal Action Buttons -->
+      <div class="modal-actions" style="padding-top: 16px; border-top: 1px solid #E5E7EB; display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" class="btn-action" id="btn-cancel-bulk-storage" style="padding: 8px 16px;">Cancel</button>
+        <button type="button" class="btn-action btn-primary" id="btn-confirm-bulk-import" disabled style="padding: 8px 20px; background-color: #25E2CC; color: #002B3D; border: none; font-weight: 600; cursor: not-allowed; opacity: 0.6; display: inline-flex; align-items: center; gap: 6px;">
+          <i data-lucide="upload" style="width: 14px; height: 14px;"></i>
+          <span id="btn-confirm-bulk-text">Select Excel File</span>
+        </button>
+      </div>
     </div>
   </div>
 

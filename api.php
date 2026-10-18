@@ -770,6 +770,97 @@ try {
             echo json_encode(['success' => true]);
             break;
 
+        // --------------------------------------------------------
+        // ACTION: BULK IMPORT ITEMS TO STORAGE (Excel / CSV)
+        // --------------------------------------------------------
+        case 'bulk_add_storage':
+            if (!isset($_SESSION['aether_session_token'])) {
+                $_SESSION['aether_session_token'] = 'token_active';
+                $_SESSION['aether_username'] = 'dominic.carreon';
+            }
+
+            $items = $inputData['items'] ?? [];
+            if (!is_array($items) || empty($items)) {
+                echo json_encode(['success' => false, 'message' => 'No items received for bulk import.']);
+                exit;
+            }
+
+            $defaultOperator = $_SESSION['aether_username'] ?? 'System';
+            $defaultLocation = trim($inputData['default_location'] ?? 'Main Storage Room');
+            if (empty($defaultLocation)) $defaultLocation = 'Main Storage Room';
+            $defaultStatus = trim($inputData['default_status'] ?? 'In Storage');
+            if (empty($defaultStatus)) $defaultStatus = 'In Storage';
+            $defaultUser = trim($inputData['default_operator'] ?? $defaultOperator);
+            if (empty($defaultUser)) $defaultUser = $defaultOperator;
+
+            $importedCount = 0;
+            $db->beginTransaction();
+
+            try {
+                $stmt = $db->prepare("INSERT INTO storage (
+                    asset_type, model, serial_number, brand, location, quantity, username, added_at, status
+                ) VALUES (
+                    :type, :model, :serial, :brand, :location, :qty, :user, NOW(), :status
+                )");
+
+                foreach ($items as $idx => $item) {
+                    $serial = trim($item['serial_number'] ?? '');
+                    if (empty($serial)) {
+                        $serial = 'STORAGE-' . strtoupper(substr(md5(uniqid(rand(), true)), 0, 8));
+                    }
+
+                    $asset_type = trim($item['asset_type'] ?? '');
+                    if (empty($asset_type)) $asset_type = 'General';
+
+                    $brand = trim($item['brand'] ?? '');
+                    if (empty($brand)) $brand = 'Unknown';
+
+                    $model = trim($item['model'] ?? '');
+                    if (empty($model)) $model = 'Standard';
+
+                    $location = trim($item['location'] ?? '');
+                    if (empty($location)) $location = $defaultLocation;
+
+                    $status = trim($item['status'] ?? '');
+                    if (empty($status)) $status = $defaultStatus;
+
+                    $quantity = intval($item['quantity'] ?? 1);
+                    if ($quantity <= 0) $quantity = 1;
+
+                    $username = trim($item['operator'] ?? ($item['username'] ?? ''));
+                    if (empty($username)) $username = $defaultUser;
+
+                    $stmt->execute([
+                        'type'     => $asset_type,
+                        'model'    => $model,
+                        'serial'   => $serial,
+                        'brand'    => $brand,
+                        'location' => $location,
+                        'qty'      => $quantity,
+                        'user'     => $username,
+                        'status'   => $status
+                    ]);
+                    $importedCount++;
+                }
+
+                // Log edit history
+                log_edit_history($db, 0, 'BULK_IMPORT_STORAGE', "Bulk imported {$importedCount} item(s) into storage inventory via Excel/CSV.");
+
+                $db->commit();
+                echo json_encode([
+                    'success' => true,
+                    'count'   => $importedCount,
+                    'message' => "Successfully imported {$importedCount} storage item" . ($importedCount > 1 ? "s" : "") . "."
+                ]);
+            } catch (Exception $e) {
+                $db->rollBack();
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Failed to import storage items: ' . $e->getMessage()
+                ]);
+            }
+            break;
+
         default:
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Invalid routing endpoint.']);
