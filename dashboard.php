@@ -59,6 +59,9 @@ session_write_close();
       <div class="action-panel">
         <button class="btn-action" id="btn-delete" disabled>Delete</button>
         <button class="btn-action" id="btn-add">Add</button>
+        <button class="btn-action" id="btn-bulk-assets" type="button" style="background: #003D5B; color: #25E2CC; border: 1px solid #25E2CC; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;" title="Bulk import Wall-to-Wall assets from Excel or CSV">
+          <i data-lucide="file-spreadsheet" style="width: 14px; height: 14px;"></i>Bulk Excel
+        </button>
         <button class="btn-action" id="btn-edit" disabled>Edit</button>
         <button class="btn-action" id="btn-update-status" disabled>Update Status</button>
         <button class="btn-action" id="btn-goto-inventory" style="background-color: #003D5B; color: #FFFFFF; border-color: #003D5B; opacity: 1; font-weight: 600; padding: 6px 14px; border-radius: 4px; cursor: pointer;">Inventory</button>
@@ -695,7 +698,61 @@ session_write_close();
     </div>
   </div>
 
-  <!-- Modal 6: Bulk Import Storage from Excel / CSV -->
+  <!-- Modal 6: Bulk Import Wall-to-Wall Assets from Excel / CSV -->
+  <div class="modal-overlay" id="modal-bulk-assets">
+    <div class="glass-panel modal-card" style="max-width: 900px; width: 96%; max-height: 90vh; overflow-y: auto; padding: 24px;">
+      <div class="modal-header" style="margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+        <h2 class="modal-title" style="font-size: 17px; margin: 0; display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="file-spreadsheet" style="color: #25E2CC; width: 20px; height: 20px;"></i>
+          Bulk Import Wall-to-Wall Assets
+        </h2>
+        <button class="btn-modal-close" id="btn-close-bulk-assets" type="button" style="background: transparent; border: none; cursor: pointer;">
+          <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+        </button>
+      </div>
+      <div style="background: rgba(0, 61, 91, 0.05); border: 1px solid rgba(0, 61, 91, 0.15); border-radius: 6px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+        <div style="font-size: 12px; color: #003D5B; line-height: 1.4;">
+          Upload an <code>.xlsx</code>, <code>.xls</code>, or <code>.csv</code> file. Use the template so the column names match the Wall-to-Wall asset fields.
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button type="button" id="btn-download-assets-template-xlsx" class="btn-action" style="font-size: 11px; padding: 5px 10px; background: #25E2CC; color: #002B3D; border: none; font-weight: 600; border-radius: 4px; cursor: pointer;">
+            <i data-lucide="download" style="width: 12px; height: 12px;"></i>.XLSX Template
+          </button>
+          <button type="button" id="btn-download-assets-template-csv" class="btn-action" style="font-size: 11px; padding: 5px 10px; background: #E2ECEB; color: #003D5B; border: 1px solid #A8D8D5; font-weight: 600; border-radius: 4px; cursor: pointer;">
+            <i data-lucide="file-text" style="width: 12px; height: 12px;"></i>.CSV Template
+          </button>
+        </div>
+      </div>
+      <div id="assets-drop-zone" style="border: 2px dashed #25E2CC; border-radius: 8px; padding: 26px 16px; text-align: center; background: rgba(37, 226, 204, 0.04); cursor: pointer; margin-bottom: 16px;">
+        <input type="file" id="assets-excel-file-input" accept=".xlsx, .xls, .csv" style="display: none;">
+        <i data-lucide="upload-cloud" style="width: 38px; height: 38px; color: #003D5B; margin-bottom: 6px; display: inline-block;"></i>
+        <div style="font-weight: 600; color: #003D5B; font-size: 14px;">Choose or drag & drop Excel / CSV file here</div>
+        <div style="font-size: 12px; color: #666;">Required column: <strong>Station_Number</strong>. Other columns may be blank.</div>
+        <div id="assets-selected-file-info" style="display: none; margin-top: 10px; font-size: 13px; font-weight: 600; color: #059669;">
+          <span id="assets-selected-file-name"></span> <span id="assets-selected-file-size" style="color: #666; font-weight: normal; font-size: 11px;"></span>
+        </div>
+      </div>
+      <div id="assets-bulk-preview-container" style="display: none; margin-bottom: 16px;">
+        <div style="font-weight: 600; font-size: 13px; color: #003D5B; margin-bottom: 8px;">
+          Preview Records (<span id="assets-bulk-count">0</span> rows ready)
+        </div>
+        <div style="max-height: 240px; overflow: auto; border: 1px solid #E5E7EB; border-radius: 6px;">
+          <table class="table-custom" style="width: 100%; font-size: 11px;">
+            <thead><tr id="assets-bulk-preview-head"></tr></thead>
+            <tbody id="assets-bulk-preview-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-actions" style="padding-top: 16px; border-top: 1px solid #E5E7EB; display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" class="btn-action" id="btn-cancel-bulk-assets">Cancel</button>
+        <button type="button" class="btn-action btn-primary" id="btn-confirm-bulk-assets" disabled style="background-color: #25E2CC; color: #002B3D; border: none; font-weight: 600; opacity: 0.6;">
+          <i data-lucide="upload" style="width: 14px; height: 14px;"></i><span id="btn-confirm-bulk-assets-text">Select Excel File</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 7: Bulk Import Storage from Excel / CSV -->
   <div class="modal-overlay" id="modal-bulk-storage">
     <div class="glass-panel modal-card" style="max-width: 680px; width: 95%; max-height: 90vh; overflow-y: auto; padding: 24px;">
       <div class="modal-header" style="margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">

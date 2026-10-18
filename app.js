@@ -1361,6 +1361,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalDelete = document.getElementById('modal-delete');
     const modalAddStorage = document.getElementById('modal-add-storage');
     const modalBulkStorage = document.getElementById('modal-bulk-storage');
+    const modalBulkAssets = document.getElementById('modal-bulk-assets');
 
     function openModal(modal) {
       if (modal) {
@@ -1394,6 +1395,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupModalClose(modalDelete, 'btn-close-delete-modal', 'btn-cancel-delete-modal');
     setupModalClose(modalAddStorage, 'btn-close-add-storage', 'btn-cancel-add-storage');
     setupModalClose(modalBulkStorage, 'btn-close-bulk-storage', 'btn-cancel-bulk-storage');
+    setupModalClose(modalBulkAssets, 'btn-close-bulk-assets', 'btn-cancel-bulk-assets');
 
     // Trigger Add Storage Modal
     const btnAddStorageItem = document.getElementById('btn-add-storage-item');
@@ -1838,12 +1840,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const btnDelete = document.getElementById('btn-delete');
       const btnUpdateStatus = document.getElementById('btn-update-status');
       const btnGotoInventory = document.getElementById('btn-goto-inventory');
+      const btnBulkAssets = document.getElementById('btn-bulk-assets');
 
       if (btnAdd) btnAdd.style.display = 'none';
       if (btnEdit) btnEdit.style.display = 'none';
       if (btnDelete) btnDelete.style.display = 'none';
       if (btnUpdateStatus) btnUpdateStatus.style.display = 'none';
       if (btnGotoInventory) btnGotoInventory.style.display = 'none';
+      if (btnBulkAssets) btnBulkAssets.style.display = 'none';
 
       // Switch filters toolbar search
       const assetFiltersPanel = document.getElementById('asset-filters-panel');
@@ -1931,12 +1935,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const btnDelete = document.getElementById('btn-delete');
       const btnUpdateStatus = document.getElementById('btn-update-status');
       const btnGotoInventory = document.getElementById('btn-goto-inventory');
+      const btnBulkAssets = document.getElementById('btn-bulk-assets');
 
       if (btnAdd) btnAdd.style.display = 'none';
       if (btnEdit) btnEdit.style.display = 'none';
       if (btnDelete) btnDelete.style.display = 'none';
       if (btnUpdateStatus) btnUpdateStatus.style.display = 'none';
       if (btnGotoInventory) btnGotoInventory.style.display = 'none';
+      if (btnBulkAssets) btnBulkAssets.style.display = 'none';
 
       // Switch filters toolbar search
       const assetFiltersPanel = document.getElementById('asset-filters-panel');
@@ -2024,12 +2030,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const btnDelete = document.getElementById('btn-delete');
       const btnUpdateStatus = document.getElementById('btn-update-status');
       const btnGotoInventory = document.getElementById('btn-goto-inventory');
+      const btnBulkAssets = document.getElementById('btn-bulk-assets');
 
       if (btnAdd) btnAdd.style.display = 'none';
       if (btnEdit) btnEdit.style.display = 'none';
       if (btnDelete) btnDelete.style.display = 'none';
       if (btnUpdateStatus) btnUpdateStatus.style.display = 'none';
       if (btnGotoInventory) btnGotoInventory.style.display = 'none';
+      if (btnBulkAssets) btnBulkAssets.style.display = 'none';
 
       // Switch filters toolbar search
       const assetFiltersPanel = document.getElementById('asset-filters-panel');
@@ -2600,6 +2608,195 @@ document.addEventListener('DOMContentLoaded', () => {
           window.location.href = 'dashboard.php?view=inventory';
         });
       }
+
+      const assetBulkColumns = [
+        'Station_Number', 'CPU_Model', 'CPU_Serial', 'CPU_Brand',
+        'Monitor1_Model', 'Monitor1_Serial', 'Monitor1_Brand',
+        'Monitor2_Model', 'Monitor2_Serial', 'Monitor2_Brand',
+        'Monitor3_Model', 'Monitor3_Serial', 'Monitor3_Brand',
+        'Program', 'Asset_located_floor', 'Site', 'Current_Status'
+      ];
+      const assetBulkLabels = assetBulkColumns.map(column => column.replace(/_/g, ' '));
+      const btnBulkAssets = document.getElementById('btn-bulk-assets');
+      const assetsDropZone = document.getElementById('assets-drop-zone');
+      const assetsFileInput = document.getElementById('assets-excel-file-input');
+      const assetsFileInfo = document.getElementById('assets-selected-file-info');
+      const assetsFileName = document.getElementById('assets-selected-file-name');
+      const assetsFileSize = document.getElementById('assets-selected-file-size');
+      const assetsPreview = document.getElementById('assets-bulk-preview-container');
+      const assetsPreviewHead = document.getElementById('assets-bulk-preview-head');
+      const assetsPreviewBody = document.getElementById('assets-bulk-preview-body');
+      const assetsCount = document.getElementById('assets-bulk-count');
+      const btnConfirmAssets = document.getElementById('btn-confirm-bulk-assets');
+      const btnConfirmAssetsText = document.getElementById('btn-confirm-bulk-assets-text');
+      let assetBulkRows = [];
+
+      const resetAssetBulk = () => {
+        assetBulkRows = [];
+        if (assetsFileInput) assetsFileInput.value = '';
+        if (assetsFileInfo) assetsFileInfo.style.display = 'none';
+        if (assetsPreview) assetsPreview.style.display = 'none';
+        if (assetsPreviewBody) assetsPreviewBody.innerHTML = '';
+        if (assetsCount) assetsCount.textContent = '0';
+        if (btnConfirmAssets) {
+          btnConfirmAssets.disabled = true;
+          btnConfirmAssets.style.opacity = '0.6';
+          btnConfirmAssetsText.textContent = 'Select Excel File';
+        }
+      };
+
+      const assetTemplateRows = [{
+        Station_Number: 101, CPU_Model: 'ProDesk 600 G3', CPU_Serial: 'CPU-0001', CPU_Brand: 'HP',
+        Monitor1_Model: 'EliteDisplay E232', Monitor1_Serial: 'MON-0001', Monitor1_Brand: 'HP',
+        Monitor2_Model: '', Monitor2_Serial: '', Monitor2_Brand: '',
+        Monitor3_Model: '', Monitor3_Serial: '', Monitor3_Brand: '',
+        Program: 'Macys', Asset_located_floor: '4th', Site: 'UP2', Current_Status: 'Onsite Deployed'
+      }];
+      const formatAssetFileSize = bytes => bytes < 1024 ? `${bytes} B` : bytes < 1048576 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1048576).toFixed(1)} MB`;
+      const downloadAssetBlob = (blob, filename) => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      };
+
+      const downloadAssetTemplate = (xlsx) => {
+        if (xlsx && window.XLSX) {
+          const worksheet = XLSX.utils.json_to_sheet(assetTemplateRows, { header: assetBulkColumns });
+          const workbook = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(workbook, worksheet, 'Assets_Template');
+          XLSX.writeFile(workbook, 'wall_to_wall_assets_template.xlsx');
+          showToast('Template Downloaded', 'Excel asset template downloaded successfully.', 'success');
+          return;
+        }
+        const escapeCsv = value => `"${String(value ?? '').replace(/"/g, '""')}"`;
+        const csv = assetBulkColumns.join(',') + '\r\n' +
+          assetTemplateRows.map(row => assetBulkColumns.map(column => escapeCsv(row[column])).join(',')).join('\r\n') + '\r\n';
+        downloadAssetBlob(new Blob([csv], { type: 'text/csv;charset=utf-8;' }), 'wall_to_wall_assets_template.csv');
+        showToast('Template Downloaded', 'CSV asset template downloaded successfully.', 'success');
+      };
+
+      document.getElementById('btn-download-assets-template-xlsx')?.addEventListener('click', () => downloadAssetTemplate(true));
+      document.getElementById('btn-download-assets-template-csv')?.addEventListener('click', () => downloadAssetTemplate(false));
+
+      const normalizeAssetRows = rawRows => {
+        const rows = [];
+        rawRows.forEach((source, index) => {
+          const normalized = {};
+          Object.keys(source).forEach(key => {
+            normalized[key.toLowerCase().replace(/[^a-z0-9]/g, '')] = source[key];
+          });
+          const value = column => {
+            const key = column.toLowerCase().replace(/[^a-z0-9]/g, '');
+            return String(normalized[key] ?? '').trim();
+          };
+          const row = {};
+          assetBulkColumns.forEach(column => { row[column] = value(column); });
+          if (!row.Station_Number) throw new Error(`Row ${index + 2} is missing Station_Number.`);
+          if (!/^\d+$/.test(row.Station_Number) || Number(row.Station_Number) <= 0) {
+            throw new Error(`Row ${index + 2} has an invalid Station_Number.`);
+          }
+          row.Station_Number = Number(row.Station_Number);
+          row.Current_Status = row.Current_Status || 'Onsite Deployed';
+          rows.push(row);
+        });
+        const seen = new Set();
+        rows.forEach(row => {
+          if (seen.has(row.Station_Number)) throw new Error(`Station_Number ${row.Station_Number} appears more than once.`);
+          seen.add(row.Station_Number);
+        });
+        return rows;
+      };
+
+      const renderAssetBulkPreview = rows => {
+        assetsPreviewHead.innerHTML = assetBulkLabels.map(label => `<th style="padding: 6px 10px; white-space: nowrap;">${htmlspecialchars(label)}</th>`).join('');
+        assetsPreviewBody.innerHTML = rows.slice(0, 50).map(row =>
+          `<tr>${assetBulkColumns.map(column => `<td style="padding: 6px 10px; white-space: nowrap;">${htmlspecialchars(row[column])}</td>`).join('')}</tr>`
+        ).join('');
+        if (rows.length > 50) {
+          assetsPreviewBody.insertAdjacentHTML('beforeend', `<tr><td colspan="${assetBulkColumns.length}" style="text-align:center;">... and ${rows.length - 50} more records</td></tr>`);
+        }
+        assetsCount.textContent = rows.length;
+        assetsPreview.style.display = 'block';
+        btnConfirmAssets.disabled = false;
+        btnConfirmAssets.style.opacity = '1';
+        btnConfirmAssetsText.textContent = `Import ${rows.length} Asset${rows.length === 1 ? '' : 's'}`;
+      };
+
+      const handleAssetFile = file => {
+        const extension = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+        if (!['.xlsx', '.xls', '.csv'].includes(extension)) {
+          showToast('Unsupported File', 'Please choose an Excel (.xlsx, .xls) or CSV (.csv) file.', 'danger');
+          return;
+        }
+        assetsFileName.textContent = file.name;
+        assetsFileSize.textContent = `(${formatAssetFileSize(file.size)})`;
+        assetsFileInfo.style.display = 'block';
+        const reader = new FileReader();
+        reader.onload = event => {
+          try {
+            let rawRows;
+            if (extension === '.csv' && !window.XLSX) {
+              const lines = String(event.target.result).split(/\r\n|\n/).filter(line => line.trim());
+              const headers = lines.shift().split(',').map(header => header.replace(/^["']|["']$/g, '').trim());
+              rawRows = lines.map(line => {
+                const values = line.split(',').map(value => value.replace(/^["']|["']$/g, '').trim());
+                return Object.fromEntries(headers.map((header, index) => [header, values[index] || '']));
+              });
+            } else {
+              const workbook = XLSX.read(new Uint8Array(event.target.result), { type: 'array' });
+              rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: '' });
+            }
+            assetBulkRows = normalizeAssetRows(rawRows);
+            renderAssetBulkPreview(assetBulkRows);
+          } catch (error) {
+            resetAssetBulk();
+            showToast('Import Validation Failed', error.message, 'danger');
+          }
+        };
+        reader.onerror = () => showToast('File Read Error', 'Could not read the selected file.', 'danger');
+        if (extension === '.csv' && !window.XLSX) reader.readAsText(file);
+        else reader.readAsArrayBuffer(file);
+      };
+
+      if (btnBulkAssets && modalBulkAssets) {
+        btnBulkAssets.addEventListener('click', () => { resetAssetBulk(); openModal(modalBulkAssets); });
+      }
+      if (assetsDropZone && assetsFileInput) {
+        assetsDropZone.addEventListener('click', () => assetsFileInput.click());
+        assetsDropZone.addEventListener('dragover', event => { event.preventDefault(); });
+        assetsDropZone.addEventListener('drop', event => {
+          event.preventDefault();
+          if (event.dataTransfer.files.length) handleAssetFile(event.dataTransfer.files[0]);
+        });
+        assetsFileInput.addEventListener('change', event => {
+          if (event.target.files.length) handleAssetFile(event.target.files[0]);
+        });
+      }
+      btnConfirmAssets?.addEventListener('click', () => {
+        if (!assetBulkRows.length) return;
+        btnConfirmAssets.disabled = true;
+        btnConfirmAssetsText.textContent = 'Importing...';
+        fetch('api.php?action=bulk_add_assets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items: assetBulkRows })
+        }).then(response => response.json()).then(result => {
+          if (!result.success) throw new Error(result.message || 'The asset batch could not be imported.');
+          showToast('Bulk Import Completed', result.message, 'success');
+          closeModal(modalBulkAssets);
+          resetAssetBulk();
+          fetchAssetsFromDatabase();
+        }).catch(error => {
+          btnConfirmAssets.disabled = false;
+          btnConfirmAssetsText.textContent = `Import ${assetBulkRows.length} Assets`;
+          showToast('Import Failed', error.message, 'danger');
+        });
+      });
 
       // Initial assets load on document ready
       fetchAssetsFromDatabase();

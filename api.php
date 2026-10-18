@@ -260,6 +260,76 @@ try {
         // --------------------------------------------------------
         // ACTION: EDIT ASSET
         // --------------------------------------------------------
+        case 'bulk_add_assets':
+            if (!isset($_SESSION['aether_session_token'])) {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized session access.']);
+                exit;
+            }
+
+            $items = $inputData['items'] ?? [];
+            if (!is_array($items) || count($items) === 0) {
+                echo json_encode(['success' => false, 'message' => 'No asset rows were supplied.']);
+                exit;
+            }
+
+            $columns = [
+                'Station_Number', 'CPU_Model', 'CPU_Serial', 'CPU_Brand',
+                'Monitor1_Model', 'Monitor1_Serial', 'Monitor1_Brand',
+                'Monitor2_Model', 'Monitor2_Serial', 'Monitor2_Brand',
+                'Monitor3_Model', 'Monitor3_Serial', 'Monitor3_Brand',
+                'Program', 'Asset_located_floor', 'Site', 'Current_Status'
+            ];
+            $insertSql = "INSERT INTO assets (" . implode(', ', $columns) . ", Created_Date)
+                          VALUES (:" . implode(', :', $columns) . ", NOW())";
+
+            try {
+                $db->beginTransaction();
+                $checkStmt = $db->prepare("SELECT COUNT(*) FROM assets WHERE Station_Number = :station");
+                $insertStmt = $db->prepare($insertSql);
+                $seenStations = [];
+
+                foreach ($items as $index => $item) {
+                    $station = filter_var($item['Station_Number'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+                    if ($station === false || $station === null) {
+                        throw new Exception('Row ' . ($index + 2) . ' has an invalid Station_Number.');
+                    }
+                    if (isset($seenStations[$station])) {
+                        throw new Exception('Station_Number ' . $station . ' appears more than once.');
+                    }
+                    $seenStations[$station] = true;
+                    $checkStmt->execute(['station' => $station]);
+                    if ((int) $checkStmt->fetchColumn() > 0) {
+                        throw new Exception('Station Number ' . $station . ' already exists.');
+                    }
+
+                    $params = [];
+                    foreach ($columns as $column) {
+                        $params[$column] = $column === 'Station_Number'
+                            ? $station
+                            : trim((string) ($item[$column] ?? ''));
+                    }
+                    if ($params['Current_Status'] === '') {
+                        $params['Current_Status'] = 'Onsite Deployed';
+                    }
+                    $insertStmt->execute($params);
+                    log_edit_history($db, $station, 'Bulk Add', "Asset added by bulk import (CPU Model: '" . $params['CPU_Model'] . "', CPU Serial: '" . $params['CPU_Serial'] . "')");
+                }
+
+                cleanup_inventory($db);
+                $db->commit();
+                echo json_encode(['success' => true, 'count' => count($items), 'message' => count($items) . ' asset(s) imported successfully.']);
+            } catch (Exception $e) {
+                if ($db->inTransaction()) {
+                    $db->rollBack();
+                }
+                echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            }
+            break;
+
+        // --------------------------------------------------------
+        // ACTION: EDIT ASSET
+        // --------------------------------------------------------
         case 'edit':
             if (!isset($_SESSION['aether_session_token'])) {
                 http_response_code(401);
