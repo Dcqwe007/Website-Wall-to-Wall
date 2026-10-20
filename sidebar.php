@@ -34,6 +34,10 @@ $currentPage = basename($_SERVER['PHP_SELF']);
       <i data-lucide="box" style="width: 16px; height: 16px;"></i>
       <span>Storage</span>
     </a>
+    <a href="dashboard.php?view=requested_assets" class="nav-item <?php echo ($currentPage == 'dashboard.php' && isset($_GET['view']) && $_GET['view'] == 'requested_assets') ? 'active' : ''; ?>" id="nav-requested-assets">
+      <i data-lucide="clipboard-list" style="width: 16px; height: 16px;"></i>
+      <span>Asset Requested</span>
+    </a>
   </nav>
   <div class="sidebar-footer">
     <!-- About System & Creator Info (Above Dominic profile) -->

@@ -102,9 +102,6 @@ session_write_close();
         <button class="btn-action" id="btn-add-storage-item" type="button" style="background: #25E2CC; color: #002B3D; border: none; font-weight: 600; padding: 6px 14px; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
           <i data-lucide="plus" style="width: 14px; height: 14px;"></i>Add Storage Item
         </button>
-        <button class="btn-action" id="btn-request-storage-asset" type="button" style="background: #003D5B; color: #25E2CC; border: 1px solid #25E2CC; font-weight: 600; padding: 6px 14px; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
-          <i data-lucide="clipboard-list" style="width: 14px; height: 14px;"></i>Request Asset
-        </button>
         <button class="btn-action btn-bulk-storage" id="btn-bulk-storage" type="button" style="background: #003D5B; color: #25E2CC; border: 1px solid #25E2CC; font-weight: 600; padding: 6px 14px; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease;" title="Bulk import storage items from Excel or CSV file">
           <i data-lucide="file-spreadsheet" style="width: 14px; height: 14px;"></i>Bulk Import Excel
         </button>
@@ -182,21 +179,26 @@ session_write_close();
       </button>
     </div>
 
-    <div id="storage-request-panel" style="display: none; margin: 10px 20px 0; background: #D9EDE5; border: 1px solid #B5D8CB; border-radius: 6px; padding: 14px 18px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);">
-      <div style="display: flex; align-items: center; gap: 10px; color: #0B2F2A; font-size: 14px; font-weight: 600; line-height: 1.4;">
-        <span style="display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 4px; background: rgba(11, 47, 42, 0.08); color: #0B2F2A; flex-shrink: 0;">
-          <i data-lucide="box" style="width: 14px; height: 14px;"></i>
-        </span>
-        <span>
-          All Requested Assets: This is a list of all assets that have been requested.
-        </span>
+    <div id="storage-request-panel" style="display: none; margin: 0 20px 0; background: transparent; border: none; border-radius: 0; padding: 0; box-shadow: none;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 10px; padding: 0;">
+        <div style="display: flex; align-items: center; gap: 10px; color: #0B2F2A; font-size: 14px; font-weight: 700; line-height: 1.4; flex: 1;">
+          <span style="display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 4px; background: rgba(11, 47, 42, 0.08); color: #0B2F2A; flex-shrink: 0;">
+            <i data-lucide="box" style="width: 14px; height: 14px;"></i>
+          </span>
+          <span>
+            All Requested Assets: This is a list of all assets that have been requested.
+          </span>
+        </div>
+        <button class="btn-action" id="btn-request-storage-asset" type="button" style="background: #003D5B; color: #25E2CC; border: 1px solid #25E2CC; font-weight: 600; padding: 6px 14px; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+          <i data-lucide="clipboard-list" style="width: 14px; height: 14px;"></i>Request Asset
+        </button>
       </div>
 
       <div id="storage-request-list" style="display: none; grid-template-columns: repeat(3, minmax(200px, 1fr)); gap: 12px; margin-top: 14px;">
         <div style="color: #4B5563; font-size: 13px; padding: 10px 0;">Loading asset requests...</div>
       </div>
 
-      <div id="storage-request-table-wrapper" style="display: block; max-height: 260px; overflow-y: auto; overflow-x: auto; margin-top: 14px; border: 1px solid #B5D8CB; border-radius: 6px; background: rgba(255,255,255,0.7);">
+      <div id="storage-request-table-wrapper" style="display: block; max-height: 260px; overflow-y: auto; overflow-x: auto; margin-top: 0; border: 1px solid #D2D6DE; border-radius: 0; background: #FFFFFF;">
         <table class="table-custom" style="width: 100%; border-collapse: collapse; font-size: 12px;">
           <thead>
             <tr style="background: #003D5B; color: #FFFFFF;">

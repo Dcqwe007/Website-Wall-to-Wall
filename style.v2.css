@@ -727,7 +727,8 @@ body {
 }
 
 #storage-request-table-wrapper {
-  max-height: 280px;
+  max-height: 420px;
+  height: 420px;
   overflow-y: auto;
   overflow-x: auto;
   display: block;
@@ -740,7 +741,7 @@ body {
 
 #storage-request-table-wrapper tbody {
   display: block;
-  max-height: 245px;
+  max-height: 380px;
   overflow-y: auto;
 }
 

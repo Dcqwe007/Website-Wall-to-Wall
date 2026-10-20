@@ -1956,8 +1956,143 @@ document.addEventListener('DOMContentLoaded', () => {
     const isHistoryView = urlParams.get('view') === 'edit_history';
     const isInventoryView = urlParams.get('view') === 'inventory';
     const isStorageView = urlParams.get('view') === 'storage';
+    const isRequestedAssetsView = urlParams.get('view') === 'requested_assets';
 
-    if (isHistoryView) {
+    const bindRequestAssetModalHandlers = () => {
+      const btnRequestStorageAsset = document.getElementById('btn-request-storage-asset');
+      const btnOpenStorageRequestModal = document.getElementById('btn-open-storage-request-modal');
+      const btnShowRequestedAssets = document.getElementById('btn-show-requested-assets');
+      const modalRequestStorage = document.getElementById('modal-request-storage');
+      const btnCloseRequestStorage = document.getElementById('btn-close-request-storage');
+      const btnCancelRequestStorage = document.getElementById('btn-cancel-request-storage');
+      const formRequestStorage = document.getElementById('form-request-storage');
+      const requestTableWrapper = document.getElementById('storage-request-table-wrapper');
+      const requestList = document.getElementById('storage-request-list');
+
+      const openStorageRequestModal = () => {
+        const datetimeInput = document.getElementById('storage-request-datetime');
+        if (datetimeInput && !datetimeInput.value) {
+          const now = new Date();
+          const localValue = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+          datetimeInput.value = localValue;
+        }
+        if (modalRequestStorage) openModal(modalRequestStorage);
+      };
+
+      if (btnShowRequestedAssets) {
+        btnShowRequestedAssets.addEventListener('click', () => {
+          if (requestTableWrapper) {
+            const isVisible = requestTableWrapper.style.display !== 'none';
+            requestTableWrapper.style.display = isVisible ? 'none' : 'block';
+          }
+          if (requestList) {
+            requestList.style.display = requestTableWrapper && requestTableWrapper.style.display !== 'none' ? 'none' : 'grid';
+          }
+          if (requestTableWrapper && requestTableWrapper.style.display !== 'none') {
+            fetchStorageRequests();
+          }
+        });
+      }
+
+      if (btnRequestStorageAsset && modalRequestStorage) {
+        btnRequestStorageAsset.addEventListener('click', openStorageRequestModal);
+      }
+
+      if (btnOpenStorageRequestModal && modalRequestStorage) {
+        btnOpenStorageRequestModal.addEventListener('click', openStorageRequestModal);
+      }
+
+      if (btnCloseRequestStorage && modalRequestStorage) {
+        btnCloseRequestStorage.addEventListener('click', () => closeModal(modalRequestStorage));
+      }
+
+      if (btnCancelRequestStorage && modalRequestStorage) {
+        btnCancelRequestStorage.addEventListener('click', () => closeModal(modalRequestStorage));
+      }
+
+      if (formRequestStorage && modalRequestStorage) {
+        formRequestStorage.addEventListener('submit', (e) => {
+          e.preventDefault();
+
+          const payload = {
+            it_rep: document.getElementById('storage-request-it-rep').value.trim(),
+            asset_type: document.getElementById('storage-request-asset-type').value,
+            purpose: document.getElementById('storage-request-purpose').value,
+            requested_at: document.getElementById('storage-request-datetime').value,
+            notes: document.getElementById('storage-request-notes').value.trim()
+          };
+
+          fetch('api.php?action=add_storage_request', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          })
+          .then(res => res.json())
+          .then(res => {
+            if (res.success) {
+              showToast('Request Logged', 'Storage asset request was submitted successfully.', 'success');
+              formRequestStorage.reset();
+              closeModal(modalRequestStorage);
+              fetchStorageRequests();
+            } else {
+              showToast('Request Failed', res.message || 'Unable to submit the storage request.', 'danger');
+            }
+          })
+          .catch(() => {
+            showToast('Request Failed', 'Unable to submit the storage request.', 'danger');
+          });
+        });
+      }
+    };
+
+    if (isRequestedAssetsView) {
+      const storageRequestPanel = document.getElementById('storage-request-panel');
+      if (storageRequestPanel) storageRequestPanel.style.display = 'block';
+
+      const requestList = document.getElementById('storage-request-list');
+      if (requestList) requestList.style.display = 'none';
+
+      const tableWrapper = document.getElementById('storage-request-table-wrapper');
+      if (tableWrapper) tableWrapper.style.display = 'block';
+
+      const assetsTable = document.getElementById('assets-table');
+      if (assetsTable) assetsTable.style.display = 'none';
+
+      const storageTable = document.getElementById('storage-table');
+      if (storageTable) storageTable.style.display = 'none';
+
+      const toolbarPageTitle = document.getElementById('toolbar-page-title');
+      if (toolbarPageTitle) toolbarPageTitle.textContent = 'Requested Assets';
+
+      const assetFiltersPanel = document.getElementById('asset-filters-panel');
+      const storageFiltersPanel = document.getElementById('storage-filters-panel');
+      const filterDrawer = document.getElementById('filter-drawer');
+      if (assetFiltersPanel) assetFiltersPanel.style.display = 'none';
+      if (storageFiltersPanel) storageFiltersPanel.style.display = 'none';
+      if (filterDrawer) filterDrawer.style.display = 'none';
+
+      const btnAdd = document.getElementById('btn-add');
+      const btnEdit = document.getElementById('btn-edit');
+      const btnDelete = document.getElementById('btn-delete');
+      const btnUpdateStatus = document.getElementById('btn-update-status');
+      const btnGotoInventory = document.getElementById('btn-goto-inventory');
+      const btnBulkAssets = document.getElementById('btn-bulk-assets');
+      const btnAddStorageItem = document.getElementById('btn-add-storage-item');
+      const btnRequestStorageAsset = document.getElementById('btn-request-storage-asset');
+      const btnBulkStorage = document.getElementById('btn-bulk-storage');
+
+      if (btnAdd) btnAdd.style.display = 'none';
+      if (btnEdit) btnEdit.style.display = 'none';
+      if (btnDelete) btnDelete.style.display = 'none';
+      if (btnUpdateStatus) btnUpdateStatus.style.display = 'none';
+      if (btnGotoInventory) btnGotoInventory.style.display = 'none';
+      if (btnBulkAssets) btnBulkAssets.style.display = 'none';
+      if (btnAddStorageItem) btnAddStorageItem.style.display = 'none';
+      if (btnBulkStorage) btnBulkStorage.style.display = 'none';
+
+      bindRequestAssetModalHandlers();
+      fetchStorageRequests();
+    } else if (isHistoryView) {
       const historyBanner = document.getElementById('edit-history-banner');
       if (historyBanner) historyBanner.style.display = 'flex';
 
@@ -2152,13 +2287,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (storageBanner) storageBanner.style.display = 'flex';
 
       const storageRequestPanel = document.getElementById('storage-request-panel');
-      if (storageRequestPanel) storageRequestPanel.style.display = 'block';
+      if (storageRequestPanel) storageRequestPanel.style.display = 'none';
 
       const requestListOnLoad = document.getElementById('storage-request-list');
       if (requestListOnLoad) requestListOnLoad.style.display = 'none';
 
       const requestTableWrapperOnLoad = document.getElementById('storage-request-table-wrapper');
-      if (requestTableWrapperOnLoad) requestTableWrapperOnLoad.style.display = 'block';
+      if (requestTableWrapperOnLoad) requestTableWrapperOnLoad.style.display = 'none';
 
       const assetsTable = document.getElementById('assets-table');
       if (assetsTable) assetsTable.style.display = 'none';
@@ -2219,98 +2354,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
 
+      bindRequestAssetModalHandlers();
       fetchStorageRequests();
 
       // Export CSV handler
       if (btnExportStorageCsv) {
         btnExportStorageCsv.addEventListener('click', () => {
           exportStorageCSV();
-        });
-      }
-
-      // Request asset modal triggers
-      const btnRequestStorageAsset = document.getElementById('btn-request-storage-asset');
-      const btnOpenStorageRequestModal = document.getElementById('btn-open-storage-request-modal');
-      const btnShowRequestedAssets = document.getElementById('btn-show-requested-assets');
-      const modalRequestStorage = document.getElementById('modal-request-storage');
-      const btnCloseRequestStorage = document.getElementById('btn-close-request-storage');
-      const btnCancelRequestStorage = document.getElementById('btn-cancel-request-storage');
-      const formRequestStorage = document.getElementById('form-request-storage');
-      const requestTableWrapper = document.getElementById('storage-request-table-wrapper');
-      const requestList = document.getElementById('storage-request-list');
-
-      if (btnShowRequestedAssets) {
-        btnShowRequestedAssets.addEventListener('click', () => {
-          if (requestTableWrapper) {
-            const isVisible = requestTableWrapper.style.display !== 'none';
-            requestTableWrapper.style.display = isVisible ? 'none' : 'block';
-          }
-          if (requestList) {
-            requestList.style.display = requestTableWrapper && requestTableWrapper.style.display !== 'none' ? 'none' : 'grid';
-          }
-          if (requestTableWrapper && requestTableWrapper.style.display !== 'none') {
-            fetchStorageRequests();
-          }
-        });
-      }
-
-      const openStorageRequestModal = () => {
-        const datetimeInput = document.getElementById('storage-request-datetime');
-        if (datetimeInput && !datetimeInput.value) {
-          const now = new Date();
-          const localValue = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
-          datetimeInput.value = localValue;
-        }
-        if (modalRequestStorage) openModal(modalRequestStorage);
-      };
-
-      if (btnRequestStorageAsset && modalRequestStorage) {
-        btnRequestStorageAsset.addEventListener('click', openStorageRequestModal);
-      }
-
-      if (btnOpenStorageRequestModal && modalRequestStorage) {
-        btnOpenStorageRequestModal.addEventListener('click', openStorageRequestModal);
-      }
-
-      if (btnCloseRequestStorage && modalRequestStorage) {
-        btnCloseRequestStorage.addEventListener('click', () => closeModal(modalRequestStorage));
-      }
-
-      if (btnCancelRequestStorage && modalRequestStorage) {
-        btnCancelRequestStorage.addEventListener('click', () => closeModal(modalRequestStorage));
-      }
-
-      if (formRequestStorage && modalRequestStorage) {
-        formRequestStorage.addEventListener('submit', (e) => {
-          e.preventDefault();
-
-          const payload = {
-            it_rep: document.getElementById('storage-request-it-rep').value.trim(),
-            asset_type: document.getElementById('storage-request-asset-type').value,
-            purpose: document.getElementById('storage-request-purpose').value,
-            requested_at: document.getElementById('storage-request-datetime').value,
-            notes: document.getElementById('storage-request-notes').value.trim()
-          };
-
-          fetch('api.php?action=add_storage_request', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          })
-          .then(res => res.json())
-          .then(res => {
-            if (res.success) {
-              showToast('Request Logged', 'Storage asset request was submitted successfully.', 'success');
-              formRequestStorage.reset();
-              closeModal(modalRequestStorage);
-              fetchStorageRequests();
-            } else {
-              showToast('Request Failed', res.message || 'Unable to submit the storage request.', 'danger');
-            }
-          })
-          .catch(() => {
-            showToast('Request Failed', 'Unable to submit the storage request.', 'danger');
-          });
         });
       }
 
