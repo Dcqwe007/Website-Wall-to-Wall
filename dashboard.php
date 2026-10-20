@@ -102,6 +102,9 @@ session_write_close();
         <button class="btn-action" id="btn-add-storage-item" type="button" style="background: #25E2CC; color: #002B3D; border: none; font-weight: 600; padding: 6px 14px; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
           <i data-lucide="plus" style="width: 14px; height: 14px;"></i>Add Storage Item
         </button>
+        <button class="btn-action" id="btn-request-storage-asset" type="button" style="background: #003D5B; color: #25E2CC; border: 1px solid #25E2CC; font-weight: 600; padding: 6px 14px; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+          <i data-lucide="clipboard-list" style="width: 14px; height: 14px;"></i>Request Asset
+        </button>
         <button class="btn-action btn-bulk-storage" id="btn-bulk-storage" type="button" style="background: #003D5B; color: #25E2CC; border: 1px solid #25E2CC; font-weight: 600; padding: 6px 14px; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease;" title="Bulk import storage items from Excel or CSV file">
           <i data-lucide="file-spreadsheet" style="width: 14px; height: 14px;"></i>Bulk Import Excel
         </button>
@@ -179,15 +182,36 @@ session_write_close();
       </button>
     </div>
 
-    <!-- Storage Management View Active Banner -->
-    <div class="edit-history-banner" id="storage-banner" style="display: none; background: #D1E7DD; border: 1px solid #A3CFBB; border-radius: 4px; padding: 12px 20px; margin: 10px 20px; align-items: center; justify-content: space-between; font-size: 14px; color: #0F5132; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <i data-lucide="box" style="width: 16px; height: 16px; color: #0F5132;"></i>
-        <span><strong>IT Equipment Storage Active</strong>: Tracking spare hardware, backup components, cables, and storage room inventory.</span>
+    <div id="storage-request-panel" style="display: none; margin: 10px 20px 0; background: #D9EDE5; border: 1px solid #B5D8CB; border-radius: 6px; padding: 14px 18px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);">
+      <div style="display: flex; align-items: center; gap: 10px; color: #0B2F2A; font-size: 14px; font-weight: 600; line-height: 1.4;">
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 4px; background: rgba(11, 47, 42, 0.08); color: #0B2F2A; flex-shrink: 0;">
+          <i data-lucide="box" style="width: 14px; height: 14px;"></i>
+        </span>
+        <span>
+          All Requested Assets: This is a list of all assets that have been requested.
+        </span>
       </div>
-      <button class="btn-clear-history-view" id="btn-clear-storage-view" style="background: #0F5132; border: none; color: white; padding: 6px 14px; border-radius: 4px; font-weight: 600; cursor: pointer; transition: all 0.15s ease; font-size: 12px;" onmouseover="this.style.background='#0a3622'" onmouseout="this.style.background='#0F5132'">
-        Show Asset Grid
-      </button>
+
+      <div id="storage-request-list" style="display: none; grid-template-columns: repeat(3, minmax(200px, 1fr)); gap: 12px; margin-top: 14px;">
+        <div style="color: #4B5563; font-size: 13px; padding: 10px 0;">Loading asset requests...</div>
+      </div>
+
+      <div id="storage-request-table-wrapper" style="display: block; margin-top: 14px; overflow: hidden; border: 1px solid #B5D8CB; border-radius: 6px; background: rgba(255,255,255,0.7);">
+        <table class="table-custom" style="width: 100%; border-collapse: collapse; font-size: 12px;">
+          <thead>
+            <tr style="background: #003D5B; color: #FFFFFF;">
+              <th style="padding: 10px 12px; text-align: left;">IT Personel</th>
+              <th style="padding: 10px 12px; text-align: left;">Asset Type</th>
+              <th style="padding: 10px 12px; text-align: left;">Purpose</th>
+              <th style="padding: 10px 12px; text-align: left;">Date & Time</th>
+              <th style="padding: 10px 12px; text-align: left;">Notes</th>
+            </tr>
+          </thead>
+          <tbody id="storage-request-table-body">
+            <tr><td colspan="5" style="padding: 12px; color: #4B5563;">No requests found.</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- Main Table Workspace -->
@@ -693,6 +717,57 @@ session_write_close();
         <div class="modal-actions" style="padding-top: 16px; border-top: 1px solid #E5E7EB;">
           <button type="button" class="btn-action" id="btn-cancel-add-storage">Cancel</button>
           <button type="submit" class="btn-action btn-primary" style="width: auto; background-color: #25E2CC; color: #002B3D; border: none; font-weight: 600;">Save Storage Item</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 6: Request Asset from Storage -->
+  <div class="modal-overlay" id="modal-request-storage">
+    <div class="glass-panel modal-card" style="max-width: 560px; padding: 24px;">
+      <div class="modal-header" style="margin-bottom: 18px;">
+        <h2 class="modal-title" style="font-size: 17px; display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="clipboard-list" style="color: var(--bg-header-footer); width: 18px; height: 18px;"></i>
+          Request Asset from Storage
+        </h2>
+        <button class="btn-modal-close" id="btn-close-request-storage" type="button">
+          <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+        </button>
+      </div>
+
+      <form id="form-request-storage">
+        <div class="modal-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group" style="margin-bottom: 0; grid-column: span 2;">
+            <label class="form-label">Name of IT Representative</label>
+            <input type="text" class="modal-input-field" id="storage-request-it-rep" placeholder="e.g. Dominic Carreon" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Type of Asset</label>
+            <select class="modal-input-field" id="storage-request-asset-type" required>
+              <option value="CPU">CPU</option>
+              <option value="Monitor">Monitor</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Purpose</label>
+            <select class="modal-input-field" id="storage-request-purpose" required>
+              <option value="Replacement">For Replacement</option>
+              <option value="Deployment">For Deployment</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom: 0; grid-column: span 2;">
+            <label class="form-label">Date & Time</label>
+            <input type="datetime-local" class="modal-input-field" id="storage-request-datetime" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0; grid-column: span 2;">
+            <label class="form-label">Notes (Optional)</label>
+            <textarea class="modal-input-field" id="storage-request-notes" rows="3" placeholder="Add additional details if needed..."></textarea>
+          </div>
+        </div>
+
+        <div class="modal-actions" style="padding-top: 16px; border-top: 1px solid #E5E7EB; margin-top: 18px; display: flex; justify-content: flex-end; gap: 10px;">
+          <button type="button" class="btn-action" id="btn-cancel-request-storage">Cancel</button>
+          <button type="submit" class="btn-action btn-primary" style="width: auto; background-color: #003D5B; border-color: #003D5B; color: #FFFFFF;">Submit Request</button>
         </div>
       </form>
     </div>

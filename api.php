@@ -793,6 +793,56 @@ try {
             break;
 
         // --------------------------------------------------------
+        // ACTION: FETCH STORAGE REQUESTS
+        // --------------------------------------------------------
+        case 'storage_requests':
+            if (!isset($_SESSION['aether_session_token'])) {
+                $_SESSION['aether_session_token'] = 'token_active';
+                $_SESSION['aether_username'] = 'dominic.carreon';
+            }
+
+            $stmt = $db->query("SELECT * FROM storage_requests ORDER BY requested_at DESC, created_at DESC LIMIT 20");
+            $rows = $stmt->fetchAll();
+
+            echo json_encode(['success' => true, 'data' => $rows]);
+            break;
+
+        // --------------------------------------------------------
+        // ACTION: CREATE STORAGE ASSET REQUEST
+        // --------------------------------------------------------
+        case 'add_storage_request':
+            if (!isset($_SESSION['aether_session_token'])) {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized session access.']);
+                exit;
+            }
+
+            $itRep = trim($inputData['it_rep'] ?? '');
+            $assetType = trim($inputData['asset_type'] ?? 'CPU');
+            $purpose = trim($inputData['purpose'] ?? 'Replacement');
+            $requestedAt = trim($inputData['requested_at'] ?? '');
+            $notes = trim($inputData['notes'] ?? '');
+
+            if (empty($itRep) || empty($assetType) || empty($purpose) || empty($requestedAt)) {
+                echo json_encode(['success' => false, 'message' => 'IT rep, asset type, purpose, and requested date/time are required.']);
+                exit;
+            }
+
+            $requestDate = date('Y-m-d H:i:s', strtotime($requestedAt));
+
+            $stmt = $db->prepare("INSERT INTO storage_requests (it_rep, asset_type, purpose, requested_at, notes, created_at) VALUES (:it_rep, :asset_type, :purpose, :requested_at, :notes, NOW())");
+            $stmt->execute([
+                'it_rep' => $itRep,
+                'asset_type' => $assetType,
+                'purpose' => $purpose,
+                'requested_at' => $requestDate,
+                'notes' => $notes
+            ]);
+
+            echo json_encode(['success' => true, 'message' => 'Storage asset request submitted successfully.']);
+            break;
+
+        // --------------------------------------------------------
         // ACTION: ADD ITEM TO STORAGE
         // --------------------------------------------------------
         case 'add_storage':

@@ -63,6 +63,17 @@ function getDBConnection() {
             `status` VARCHAR(50) DEFAULT 'In Storage'
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
+        // Auto-create storage request log if it does not exist
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `storage_requests` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `it_rep` VARCHAR(100) NOT NULL,
+            `asset_type` VARCHAR(20) NOT NULL,
+            `purpose` VARCHAR(30) NOT NULL,
+            `requested_at` DATETIME NOT NULL,
+            `notes` TEXT DEFAULT NULL,
+            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
         // Auto-drop Hostname column if it exists in assets table
         try {
             $pdo->exec("ALTER TABLE `assets` DROP COLUMN `Hostname` ");

@@ -1003,6 +1003,79 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function fetchStorageRequests() {
+      const requestList = document.getElementById('storage-request-list');
+      const tableWrapper = document.getElementById('storage-request-table-wrapper');
+      const tableBody = document.getElementById('storage-request-table-body');
+      if (!requestList) return;
+
+      fetch('api.php?action=storage_requests&_t=' + Date.now())
+        .then(res => res.json())
+        .then(res => {
+          if (!res.success || !Array.isArray(res.data)) {
+            requestList.innerHTML = '<div style="color: #B91C1C; font-size: 13px;">Unable to load storage requests.</div>';
+            if (tableBody) tableBody.innerHTML = '<tr><td colspan="5" style="padding: 12px; color: #B91C1C;">Unable to load requests.</td></tr>';
+            return;
+          }
+
+          const requests = res.data;
+          if (!requests.length) {
+            requestList.innerHTML = '<div style="color: #4B5563; font-size: 13px;">No storage asset requests yet.</div>';
+            if (tableBody) tableBody.innerHTML = '<tr><td colspan="5" style="padding: 12px; color: #4B5563;">No asset requests found.</td></tr>';
+            return;
+          }
+
+          requestList.innerHTML = requests.slice(0, 6).map(item => {
+            const requestedAt = item.requested_at ? new Date(item.requested_at.replace(' ', 'T')).toLocaleString([], {
+              year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+            }) : 'N/A';
+
+            return `
+              <div style="background: rgba(255,255,255,0.72); border: 1px solid rgba(11,47,42,0.12); border-radius: 8px; padding: 12px; min-height: 110px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px;">
+                  <span style="font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #0B2F2A; font-weight: 700;">${htmlspecialchars(item.asset_type || 'CPU')}</span>
+                  <span style="background: rgba(37, 226, 204, 0.15); color: #0B2F2A; border: 1px solid rgba(11,47,42,0.12); border-radius: 999px; padding: 3px 8px; font-size: 10px; font-weight: 700;">${htmlspecialchars(item.purpose || 'Replacement')}</span>
+                </div>
+                <div style="font-size: 12px; color: #1F2937; font-weight: 700; margin-bottom: 4px;">${htmlspecialchars(item.it_rep || 'Unknown IT Rep')}</div>
+                <div style="font-size: 11px; color: #4B5563; line-height: 1.5;">${htmlspecialchars(requestedAt)}</div>
+              </div>
+            `;
+          }).join('');
+
+          if (tableBody) {
+            tableBody.innerHTML = requests.map(item => {
+              const requestedAt = item.requested_at ? new Date(item.requested_at.replace(' ', 'T')).toLocaleString([], {
+                year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+              }) : 'N/A';
+
+              const notes = item.notes ? htmlspecialchars(item.notes) : '—';
+
+              return `
+                <tr style="border-top: 1px solid #D9EAE7;">
+                  <td style="padding: 10px 12px; color: #1F2937; font-weight: 600;">${htmlspecialchars(item.it_rep || 'Unknown')}</td>
+                  <td style="padding: 10px 12px; color: #1F2937;">${htmlspecialchars(item.asset_type || 'CPU')}</td>
+                  <td style="padding: 10px 12px; color: #1F2937;">${htmlspecialchars(item.purpose || 'Replacement')}</td>
+                  <td style="padding: 10px 12px; color: #1F2937;">${htmlspecialchars(requestedAt)}</td>
+                  <td style="padding: 10px 12px; color: #1F2937;">${notes}</td>
+                </tr>
+              `;
+            }).join('');
+          }
+
+          if (requestList) {
+            requestList.style.display = 'none';
+          }
+
+          if (tableWrapper) {
+            tableWrapper.style.display = 'block';
+          }
+        })
+        .catch(() => {
+          requestList.innerHTML = '<div style="color: #B91C1C; font-size: 13px;">Unable to load storage requests.</div>';
+          if (tableBody) tableBody.innerHTML = '<tr><td colspan="4" style="padding: 12px; color: #B91C1C;">Unable to load requests.</td></tr>';
+        });
+    }
+
     // Render storage table
     function renderStorageTable() {
       const storageTableBody = document.getElementById('storage-table-body');
@@ -2040,6 +2113,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const storageBanner = document.getElementById('storage-banner');
       if (storageBanner) storageBanner.style.display = 'flex';
 
+      const storageRequestPanel = document.getElementById('storage-request-panel');
+      if (storageRequestPanel) storageRequestPanel.style.display = 'block';
+
+      const requestListOnLoad = document.getElementById('storage-request-list');
+      if (requestListOnLoad) requestListOnLoad.style.display = 'none';
+
+      const requestTableWrapperOnLoad = document.getElementById('storage-request-table-wrapper');
+      if (requestTableWrapperOnLoad) requestTableWrapperOnLoad.style.display = 'block';
+
       const assetsTable = document.getElementById('assets-table');
       if (assetsTable) assetsTable.style.display = 'none';
 
@@ -2099,10 +2181,98 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
 
+      fetchStorageRequests();
+
       // Export CSV handler
       if (btnExportStorageCsv) {
         btnExportStorageCsv.addEventListener('click', () => {
           exportStorageCSV();
+        });
+      }
+
+      // Request asset modal triggers
+      const btnRequestStorageAsset = document.getElementById('btn-request-storage-asset');
+      const btnOpenStorageRequestModal = document.getElementById('btn-open-storage-request-modal');
+      const btnShowRequestedAssets = document.getElementById('btn-show-requested-assets');
+      const modalRequestStorage = document.getElementById('modal-request-storage');
+      const btnCloseRequestStorage = document.getElementById('btn-close-request-storage');
+      const btnCancelRequestStorage = document.getElementById('btn-cancel-request-storage');
+      const formRequestStorage = document.getElementById('form-request-storage');
+      const requestTableWrapper = document.getElementById('storage-request-table-wrapper');
+      const requestList = document.getElementById('storage-request-list');
+
+      if (btnShowRequestedAssets) {
+        btnShowRequestedAssets.addEventListener('click', () => {
+          if (requestTableWrapper) {
+            const isVisible = requestTableWrapper.style.display !== 'none';
+            requestTableWrapper.style.display = isVisible ? 'none' : 'block';
+          }
+          if (requestList) {
+            requestList.style.display = requestTableWrapper && requestTableWrapper.style.display !== 'none' ? 'none' : 'grid';
+          }
+          if (requestTableWrapper && requestTableWrapper.style.display !== 'none') {
+            fetchStorageRequests();
+          }
+        });
+      }
+
+      const openStorageRequestModal = () => {
+        const datetimeInput = document.getElementById('storage-request-datetime');
+        if (datetimeInput && !datetimeInput.value) {
+          const now = new Date();
+          const localValue = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+          datetimeInput.value = localValue;
+        }
+        if (modalRequestStorage) openModal(modalRequestStorage);
+      };
+
+      if (btnRequestStorageAsset && modalRequestStorage) {
+        btnRequestStorageAsset.addEventListener('click', openStorageRequestModal);
+      }
+
+      if (btnOpenStorageRequestModal && modalRequestStorage) {
+        btnOpenStorageRequestModal.addEventListener('click', openStorageRequestModal);
+      }
+
+      if (btnCloseRequestStorage && modalRequestStorage) {
+        btnCloseRequestStorage.addEventListener('click', () => closeModal(modalRequestStorage));
+      }
+
+      if (btnCancelRequestStorage && modalRequestStorage) {
+        btnCancelRequestStorage.addEventListener('click', () => closeModal(modalRequestStorage));
+      }
+
+      if (formRequestStorage && modalRequestStorage) {
+        formRequestStorage.addEventListener('submit', (e) => {
+          e.preventDefault();
+
+          const payload = {
+            it_rep: document.getElementById('storage-request-it-rep').value.trim(),
+            asset_type: document.getElementById('storage-request-asset-type').value,
+            purpose: document.getElementById('storage-request-purpose').value,
+            requested_at: document.getElementById('storage-request-datetime').value,
+            notes: document.getElementById('storage-request-notes').value.trim()
+          };
+
+          fetch('api.php?action=add_storage_request', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          })
+          .then(res => res.json())
+          .then(res => {
+            if (res.success) {
+              showToast('Request Logged', 'Storage asset request was submitted successfully.', 'success');
+              formRequestStorage.reset();
+              closeModal(modalRequestStorage);
+              fetchStorageRequests();
+            } else {
+              showToast('Request Failed', res.message || 'Unable to submit the storage request.', 'danger');
+            }
+          })
+          .catch(() => {
+            showToast('Request Failed', 'Unable to submit the storage request.', 'danger');
+          });
         });
       }
 
