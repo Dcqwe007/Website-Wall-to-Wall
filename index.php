@@ -59,7 +59,7 @@ if (isset($_SESSION['aether_session_token'])) {
        ============================================= */
     .page-wrapper {
       display: flex;
-      height: 100vh;
+      min-height: 100vh;
       width: 100vw;
       overflow: hidden;
     }
@@ -288,7 +288,8 @@ if (isset($_SESSION['aether_session_token'])) {
        RIGHT PANEL - Login Form
        ============================================= */
     .right-panel {
-      width: 480px;
+      width: min(100%, 480px);
+      max-width: 480px;
       flex-shrink: 0;
       background: var(--cnx-panel-bg);
       display: flex;
@@ -545,8 +546,29 @@ if (isset($_SESSION['aether_session_token'])) {
 
     /* Responsive */
     @media (max-width: 860px) {
+      html, body {
+        overflow-y: auto;
+      }
+
+      .page-wrapper {
+        width: 100%;
+        min-height: 100vh;
+        overflow: visible;
+      }
+
       .left-panel { display: none; }
-      .right-panel { width: 100%; padding: 40px 28px; }
+
+      .right-panel {
+        width: 100%;
+        max-width: 100%;
+        min-height: 100vh;
+        padding: 40px 22px 80px;
+      }
+
+      .right-footer {
+        position: static;
+        margin-top: 24px;
+      }
     }
 
     /* =============================================
