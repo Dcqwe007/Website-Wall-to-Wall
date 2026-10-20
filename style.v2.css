@@ -721,6 +721,36 @@ body {
   white-space: nowrap;
 }
 
+#storage-request-panel {
+  max-height: 520px;
+  overflow: hidden;
+}
+
+#storage-request-table-wrapper {
+  max-height: 280px;
+  overflow-y: auto;
+  overflow-x: auto;
+  display: block;
+}
+
+#storage-request-table-wrapper table {
+  min-width: 960px;
+  table-layout: fixed;
+}
+
+#storage-request-table-wrapper tbody {
+  display: block;
+  max-height: 245px;
+  overflow-y: auto;
+}
+
+#storage-request-table-wrapper thead,
+#storage-request-table-wrapper tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
 /* Sticky Headers with Dark Blue Background */
 .table-custom th {
   position: sticky;

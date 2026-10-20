@@ -830,7 +830,7 @@ try {
 
             $requestDate = date('Y-m-d H:i:s', strtotime($requestedAt));
 
-            $stmt = $db->prepare("INSERT INTO storage_requests (it_rep, asset_type, purpose, requested_at, notes, created_at) VALUES (:it_rep, :asset_type, :purpose, :requested_at, :notes, NOW())");
+            $stmt = $db->prepare("INSERT INTO storage_requests (it_rep, asset_type, purpose, requested_at, notes, status, created_at) VALUES (:it_rep, :asset_type, :purpose, :requested_at, :notes, 'Pending', NOW())");
             $stmt->execute([
                 'it_rep' => $itRep,
                 'asset_type' => $assetType,
@@ -840,6 +840,27 @@ try {
             ]);
 
             echo json_encode(['success' => true, 'message' => 'Storage asset request submitted successfully.']);
+            break;
+
+        case 'update_storage_request_status':
+            if (!isset($_SESSION['aether_session_token'])) {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized session access.']);
+                exit;
+            }
+
+            $id = intval($inputData['id'] ?? 0);
+            $status = trim((string) ($inputData['status'] ?? 'Pending'));
+
+            if ($id <= 0 || !in_array($status, ['Pending', 'Done'], true)) {
+                echo json_encode(['success' => false, 'message' => 'Invalid request status update.']);
+                exit;
+            }
+
+            $stmt = $db->prepare("UPDATE storage_requests SET status = :status WHERE id = :id");
+            $stmt->execute(['status' => $status, 'id' => $id]);
+
+            echo json_encode(['success' => true, 'message' => 'Request status updated successfully.']);
             break;
 
         // --------------------------------------------------------

@@ -71,8 +71,15 @@ function getDBConnection() {
             `purpose` VARCHAR(30) NOT NULL,
             `requested_at` DATETIME NOT NULL,
             `notes` TEXT DEFAULT NULL,
+            `status` VARCHAR(20) NOT NULL DEFAULT 'Pending',
             `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        try {
+            $pdo->exec("ALTER TABLE `storage_requests` ADD COLUMN `status` VARCHAR(20) NOT NULL DEFAULT 'Pending' AFTER `notes`");
+        } catch (PDOException $e) {
+            // Ignore if the column already exists.
+        }
 
         // Auto-drop Hostname column if it exists in assets table
         try {

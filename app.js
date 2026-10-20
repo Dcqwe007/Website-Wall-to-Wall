@@ -1014,14 +1014,14 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(res => {
           if (!res.success || !Array.isArray(res.data)) {
             requestList.innerHTML = '<div style="color: #B91C1C; font-size: 13px;">Unable to load storage requests.</div>';
-            if (tableBody) tableBody.innerHTML = '<tr><td colspan="5" style="padding: 12px; color: #B91C1C;">Unable to load requests.</td></tr>';
+            if (tableBody) tableBody.innerHTML = '<tr><td colspan="7" style="padding: 12px; color: #B91C1C;">Unable to load requests.</td></tr>';
             return;
           }
 
           const requests = res.data;
           if (!requests.length) {
             requestList.innerHTML = '<div style="color: #4B5563; font-size: 13px;">No storage asset requests yet.</div>';
-            if (tableBody) tableBody.innerHTML = '<tr><td colspan="5" style="padding: 12px; color: #4B5563;">No asset requests found.</td></tr>';
+            if (tableBody) tableBody.innerHTML = '<tr><td colspan="7" style="padding: 12px; color: #4B5563;">No asset requests found.</td></tr>';
             return;
           }
 
@@ -1049,6 +1049,11 @@ document.addEventListener('DOMContentLoaded', () => {
               }) : 'N/A';
 
               const notes = item.notes ? htmlspecialchars(item.notes) : '—';
+              const status = String(item.status || 'Pending').trim();
+              const isDone = status.toLowerCase() === 'done' || status.toLowerCase() === 'completed';
+              const actionCell = isDone
+                ? '<span style="color: #0f5132; font-weight: 700;">Completed</span>'
+                : '<button type="button" class="btn-mark-request-done" data-request-id="' + item.id + '" style="background: #003D5B; color: white; border: none; border-radius: 4px; padding: 6px 10px; font-size: 11px; font-weight: 700; cursor: pointer;">Done</button>';
 
               return `
                 <tr style="border-top: 1px solid #D9EAE7;">
@@ -1057,9 +1062,39 @@ document.addEventListener('DOMContentLoaded', () => {
                   <td style="padding: 10px 12px; color: #1F2937;">${htmlspecialchars(item.purpose || 'Replacement')}</td>
                   <td style="padding: 10px 12px; color: #1F2937;">${htmlspecialchars(requestedAt)}</td>
                   <td style="padding: 10px 12px; color: #1F2937;">${notes}</td>
+                  <td style="padding: 10px 12px;">
+                    <span style="display: inline-block; padding: 4px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; ${isDone ? 'background: rgba(40, 167, 69, 0.14); color: #0f5132;' : 'background: rgba(255, 193, 7, 0.18); color: #7a5300;'}">
+                      ${htmlspecialchars(status || 'Pending')}
+                    </span>
+                  </td>
+                  <td style="padding: 10px 12px;">${actionCell}</td>
                 </tr>
               `;
             }).join('');
+
+            const doneButtons = tableBody.querySelectorAll('.btn-mark-request-done');
+            doneButtons.forEach(button => {
+              button.addEventListener('click', () => {
+                const requestId = button.getAttribute('data-request-id');
+                fetch('api.php?action=update_storage_request_status', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ id: requestId, status: 'Done' })
+                })
+                .then(response => response.json())
+                .then(result => {
+                  if (result.success) {
+                    showToast('Request Updated', 'The request has been marked as done.', 'success');
+                    fetchStorageRequests();
+                  } else {
+                    showToast('Update Failed', result.message || 'Unable to update request status.', 'danger');
+                  }
+                })
+                .catch(() => {
+                  showToast('Update Failed', 'Unable to update request status.', 'danger');
+                });
+              });
+            });
           }
 
           if (requestList) {
@@ -1068,11 +1103,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
           if (tableWrapper) {
             tableWrapper.style.display = 'block';
+            tableWrapper.style.maxHeight = '260px';
+            tableWrapper.style.overflowY = 'auto';
+            tableWrapper.style.overflowX = 'auto';
           }
         })
         .catch(() => {
           requestList.innerHTML = '<div style="color: #B91C1C; font-size: 13px;">Unable to load storage requests.</div>';
-          if (tableBody) tableBody.innerHTML = '<tr><td colspan="4" style="padding: 12px; color: #B91C1C;">Unable to load requests.</td></tr>';
+          if (tableBody) tableBody.innerHTML = '<tr><td colspan="7" style="padding: 12px; color: #B91C1C;">Unable to load requests.</td></tr>';
         });
     }
 

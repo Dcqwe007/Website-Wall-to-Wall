@@ -196,19 +196,21 @@ session_write_close();
         <div style="color: #4B5563; font-size: 13px; padding: 10px 0;">Loading asset requests...</div>
       </div>
 
-      <div id="storage-request-table-wrapper" style="display: block; margin-top: 14px; overflow: hidden; border: 1px solid #B5D8CB; border-radius: 6px; background: rgba(255,255,255,0.7);">
+      <div id="storage-request-table-wrapper" style="display: block; max-height: 260px; overflow-y: auto; overflow-x: auto; margin-top: 14px; border: 1px solid #B5D8CB; border-radius: 6px; background: rgba(255,255,255,0.7);">
         <table class="table-custom" style="width: 100%; border-collapse: collapse; font-size: 12px;">
           <thead>
             <tr style="background: #003D5B; color: #FFFFFF;">
-              <th style="padding: 10px 12px; text-align: left;">IT Personel</th>
+              <th style="padding: 10px 12px; text-align: left;">IT Personnel</th>
               <th style="padding: 10px 12px; text-align: left;">Asset Type</th>
               <th style="padding: 10px 12px; text-align: left;">Purpose</th>
               <th style="padding: 10px 12px; text-align: left;">Date & Time</th>
               <th style="padding: 10px 12px; text-align: left;">Notes</th>
+              <th style="padding: 10px 12px; text-align: left;">Status</th>
+              <th style="padding: 10px 12px; text-align: left;">Action</th>
             </tr>
           </thead>
           <tbody id="storage-request-table-body">
-            <tr><td colspan="5" style="padding: 12px; color: #4B5563;">No requests found.</td></tr>
+            <tr><td colspan="7" style="padding: 12px; color: #4B5563;">No requests found.</td></tr>
           </tbody>
         </table>
       </div>
@@ -325,9 +327,6 @@ session_write_close();
         <button class="btn-footer" id="btn-export-history-csv" style="display: none;">Export History CSV</button>
         <button class="btn-footer" id="btn-export-inventory-csv" style="display: none;">Export Inventory CSV</button>
         <button class="btn-footer" id="btn-export-storage-csv" style="display: none;">Export Storage CSV</button>
-        <button class="btn-footer" id="btn-footer-bulk-storage" style="display: none; background: #003D5B; color: #25E2CC; border: 1px solid #25E2CC; font-weight: 600;">
-          <i data-lucide="file-spreadsheet" style="width: 13px; height: 13px; vertical-align: middle; margin-right: 4px; display: inline-block;"></i>Import Storage Excel
-        </button>
       </div>
     </footer>
 
