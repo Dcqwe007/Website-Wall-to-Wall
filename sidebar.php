@@ -24,7 +24,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 
     <a href="dashboard.php?view=edit_history" class="nav-item <?php echo ($currentPage == 'dashboard.php' && isset($_GET['view']) && $_GET['view'] == 'edit_history') ? 'active' : ''; ?>" id="nav-edit-history">
       <i data-lucide="history" style="width: 16px; height: 16px;"></i>
-      <span>Edit History</span>
+      <span>History</span>
     </a>
     <a href="dashboard.php?view=inventory" class="nav-item <?php echo ($currentPage == 'dashboard.php' && isset($_GET['view']) && $_GET['view'] == 'inventory') ? 'active' : ''; ?>" id="nav-inventory">
       <i data-lucide="archive" style="width: 16px; height: 16px;"></i>

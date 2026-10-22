@@ -851,14 +851,77 @@ try {
 
             $id = intval($inputData['id'] ?? 0);
             $status = trim((string) ($inputData['status'] ?? 'Pending'));
+            $serialNumber = trim((string) ($inputData['serial_number'] ?? ''));
+            $brand = trim((string) ($inputData['brand'] ?? ''));
+            $model = trim((string) ($inputData['model'] ?? ''));
+            $completedAtInput = trim((string) ($inputData['completed_at'] ?? ''));
 
             if ($id <= 0 || !in_array($status, ['Pending', 'Done'], true)) {
                 echo json_encode(['success' => false, 'message' => 'Invalid request status update.']);
                 exit;
             }
 
-            $stmt = $db->prepare("UPDATE storage_requests SET status = :status WHERE id = :id");
-            $stmt->execute(['status' => $status, 'id' => $id]);
+            if ($status === 'Done') {
+                if ($serialNumber === '' || $brand === '' || $model === '' || $completedAtInput === '') {
+                    echo json_encode(['success' => false, 'message' => 'Serial number, brand, model, and date/time are required to complete the request.']);
+                    exit;
+                }
+
+                $completedAt = date('Y-m-d H:i:s', strtotime($completedAtInput));
+
+                $db->beginTransaction();
+
+                $stmt = $db->prepare("UPDATE storage_requests SET status = :status, completion_serial_number = :serial_number, completion_brand = :brand, completion_model = :model, completed_at = :completed_at WHERE id = :id");
+                $stmt->execute([
+                    'status' => $status,
+                    'serial_number' => $serialNumber,
+                    'brand' => $brand,
+                    'model' => $model,
+                    'completed_at' => $completedAt,
+                    'id' => $id
+                ]);
+
+                // Auto-remove matching storage asset once request is completed.
+                $deleteStorageStmt = $db->prepare("DELETE FROM storage WHERE TRIM(serial_number) = TRIM(:serial_number) LIMIT 1");
+                $deleteStorageStmt->execute(['serial_number' => $serialNumber]);
+                $removedFromStorage = $deleteStorageStmt->rowCount() > 0;
+
+                $historyUsername = $_SESSION['aether_username'] ?? 'System';
+                $historyDetails = 'Request ID ' . $id
+                    . ' marked Done | Serial: ' . $serialNumber
+                    . ' | Brand: ' . $brand
+                    . ' | Model: ' . $model
+                    . ' | Completed At: ' . $completedAt
+                    . ' | Storage Match: ' . ($removedFromStorage ? 'Removed' : 'Not Found');
+                $historyStmt = $db->prepare("INSERT INTO edit_history (station_number, action_type, username, details, changed_at) VALUES (:station_number, :action_type, :username, :details, NOW())");
+                $historyStmt->execute([
+                    'station_number' => 0,
+                    'action_type' => 'Request Process',
+                    'username' => $historyUsername,
+                    'details' => $historyDetails
+                ]);
+
+                $db->commit();
+
+                if ($removedFromStorage) {
+                    echo json_encode([
+                        'success' => true,
+                        'message' => 'Request status updated successfully.',
+                        'storage_removed' => true
+                    ]);
+                } else {
+                    echo json_encode([
+                        'success' => true,
+                        'message' => 'Request marked done, but no storage item matched that serial number.',
+                        'storage_removed' => false,
+                        'warning' => true
+                    ]);
+                }
+                break;
+            } else {
+                $stmt = $db->prepare("UPDATE storage_requests SET status = :status WHERE id = :id");
+                $stmt->execute(['status' => $status, 'id' => $id]);
+            }
 
             echo json_encode(['success' => true, 'message' => 'Request status updated successfully.']);
             break;

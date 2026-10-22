@@ -689,6 +689,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         filtered.forEach(item => {
           const tr = document.createElement('tr');
+          const isRequestProcess = item.action_type === 'Storage Request Completed' || item.action_type === 'Request Process';
+          let stationLabel = item.station_number === 0 ? 'Global / System' : 'Station ' + item.station_number;
+          if (isRequestProcess) {
+            const requestMatch = (item.details || '').match(/Request ID\s+(\d+)/i);
+            stationLabel = requestMatch ? ('Request ' + requestMatch[1]) : 'Request Process';
+          }
+          const actionLabel = isRequestProcess ? 'Request Process' : item.action_type;
           
           let badgeClass = 'badge-other';
           if (item.action_type === 'Add') badgeClass = 'badge-deployed';
@@ -716,8 +723,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
           tr.innerHTML = `
             <td style="font-family: monospace; font-size: 12.5px;">${displayDate}</td>
-            <td><strong>${item.station_number === 0 ? 'Global / System' : 'Station ' + item.station_number}</strong></td>
-            <td><span class="badge ${badgeClass}">${item.action_type}</span></td>
+            <td><strong>${stationLabel}</strong></td>
+            <td><span class="badge ${badgeClass}">${actionLabel}</span></td>
             <td><span style="font-weight: 500;">${item.username || '-'}</span></td>
             <td style="white-space: normal; max-width: 450px; font-size: 11.5px; line-height: 1.4;">${item.details || '-'}</td>
           `;
@@ -1007,7 +1014,74 @@ document.addEventListener('DOMContentLoaded', () => {
       const requestList = document.getElementById('storage-request-list');
       const tableWrapper = document.getElementById('storage-request-table-wrapper');
       const tableBody = document.getElementById('storage-request-table-body');
+      const modalRequestDone = document.getElementById('modal-request-done');
+      const formRequestDone = document.getElementById('form-request-done');
+      const requestDoneIdInput = document.getElementById('request-done-id');
+      const requestDoneDatetimeInput = document.getElementById('request-done-datetime');
+      const btnCloseRequestDone = document.getElementById('btn-close-request-done');
+      const btnCancelRequestDone = document.getElementById('btn-cancel-request-done');
       if (!requestList) return;
+
+      if (btnCloseRequestDone && modalRequestDone && !btnCloseRequestDone.dataset.bound) {
+        btnCloseRequestDone.addEventListener('click', () => closeModal(modalRequestDone));
+        btnCloseRequestDone.dataset.bound = '1';
+      }
+
+      if (btnCancelRequestDone && modalRequestDone && !btnCancelRequestDone.dataset.bound) {
+        btnCancelRequestDone.addEventListener('click', () => closeModal(modalRequestDone));
+        btnCancelRequestDone.dataset.bound = '1';
+      }
+
+      if (formRequestDone && modalRequestDone && !formRequestDone.dataset.bound) {
+        formRequestDone.addEventListener('submit', (e) => {
+          e.preventDefault();
+
+          const requestId = parseInt((requestDoneIdInput && requestDoneIdInput.value) || '0', 10);
+          const serialNumber = document.getElementById('request-done-serial').value.trim();
+          const brand = document.getElementById('request-done-brand').value.trim();
+          const model = document.getElementById('request-done-model').value.trim();
+          const completedAt = document.getElementById('request-done-datetime').value;
+
+          if (!requestId || !serialNumber || !brand || !model || !completedAt) {
+            showToast('Required Fields', 'Please fill Serial Number, Brand, Model, and Date & Time.', 'danger');
+            return;
+          }
+
+          fetch('api.php?action=update_storage_request_status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: requestId,
+              status: 'Done',
+              serial_number: serialNumber,
+              brand: brand,
+              model: model,
+              completed_at: completedAt
+            })
+          })
+          .then(response => response.json())
+          .then(result => {
+            if (result.success) {
+              if (result.warning || result.storage_removed === false) {
+                showToast('Request Updated', result.message || 'Request marked done, but no matching serial was found in storage.', 'warning');
+              } else {
+                showToast('Request Updated', 'The request has been marked as done and removed from storage.', 'success');
+              }
+              formRequestDone.reset();
+              if (requestDoneIdInput) requestDoneIdInput.value = '';
+              closeModal(modalRequestDone);
+              fetchStorageRequests();
+            } else {
+              showToast('Update Failed', result.message || 'Unable to update request status.', 'danger');
+            }
+          })
+          .catch(() => {
+            showToast('Update Failed', 'Unable to update request status.', 'danger');
+          });
+        });
+
+        formRequestDone.dataset.bound = '1';
+      }
 
       fetch('api.php?action=storage_requests&_t=' + Date.now())
         .then(res => res.json())
@@ -1076,23 +1150,16 @@ document.addEventListener('DOMContentLoaded', () => {
             doneButtons.forEach(button => {
               button.addEventListener('click', () => {
                 const requestId = button.getAttribute('data-request-id');
-                fetch('api.php?action=update_storage_request_status', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ id: requestId, status: 'Done' })
-                })
-                .then(response => response.json())
-                .then(result => {
-                  if (result.success) {
-                    showToast('Request Updated', 'The request has been marked as done.', 'success');
-                    fetchStorageRequests();
-                  } else {
-                    showToast('Update Failed', result.message || 'Unable to update request status.', 'danger');
-                  }
-                })
-                .catch(() => {
-                  showToast('Update Failed', 'Unable to update request status.', 'danger');
-                });
+                if (requestDoneIdInput) requestDoneIdInput.value = requestId || '';
+
+                if (requestDoneDatetimeInput && !requestDoneDatetimeInput.value) {
+                  const now = new Date();
+                  requestDoneDatetimeInput.value = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+                }
+
+                if (modalRequestDone) {
+                  openModal(modalRequestDone);
+                }
               });
             });
           }

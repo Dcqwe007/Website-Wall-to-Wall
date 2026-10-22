@@ -774,6 +774,48 @@ session_write_close();
     </div>
   </div>
 
+  <!-- Modal 6B: Complete Requested Asset -->
+  <div class="modal-overlay" id="modal-request-done">
+    <div class="glass-panel modal-card" style="max-width: 560px; padding: 24px;">
+      <div class="modal-header" style="margin-bottom: 18px;">
+        <h2 class="modal-title" style="font-size: 17px; display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="check-circle-2" style="color: var(--bg-header-footer); width: 18px; height: 18px;"></i>
+          Complete Request
+        </h2>
+        <button class="btn-modal-close" id="btn-close-request-done" type="button">
+          <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+        </button>
+      </div>
+
+      <form id="form-request-done">
+        <input type="hidden" id="request-done-id">
+        <div class="modal-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group" style="margin-bottom: 0; grid-column: span 2;">
+            <label class="form-label">Serial Number</label>
+            <input type="text" class="modal-input-field" id="request-done-serial" placeholder="e.g. CN-0F19K-9901" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Brand</label>
+            <input type="text" class="modal-input-field" id="request-done-brand" placeholder="e.g. Dell" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Model</label>
+            <input type="text" class="modal-input-field" id="request-done-model" placeholder="e.g. OptiPlex 7090" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0; grid-column: span 2;">
+            <label class="form-label">Date & Time</label>
+            <input type="datetime-local" class="modal-input-field" id="request-done-datetime" required>
+          </div>
+        </div>
+
+        <div class="modal-actions" style="padding-top: 16px; border-top: 1px solid #E5E7EB; margin-top: 18px; display: flex; justify-content: flex-end; gap: 10px;">
+          <button type="button" class="btn-action" id="btn-cancel-request-done">Cancel</button>
+          <button type="submit" class="btn-action btn-primary" style="width: auto; background-color: #003D5B; border-color: #003D5B; color: #FFFFFF;">Save & Mark Done</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Modal 6: Bulk Import Wall-to-Wall Assets from Excel / CSV -->
   <div class="modal-overlay" id="modal-bulk-assets">
     <div class="glass-panel modal-card" style="max-width: 900px; width: 96%; max-height: 90vh; overflow-y: auto; padding: 24px;">

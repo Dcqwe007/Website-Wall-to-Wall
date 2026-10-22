@@ -72,11 +72,39 @@ function getDBConnection() {
             `requested_at` DATETIME NOT NULL,
             `notes` TEXT DEFAULT NULL,
             `status` VARCHAR(20) NOT NULL DEFAULT 'Pending',
+            `completion_serial_number` VARCHAR(120) DEFAULT NULL,
+            `completion_brand` VARCHAR(120) DEFAULT NULL,
+            `completion_model` VARCHAR(120) DEFAULT NULL,
+            `completed_at` DATETIME DEFAULT NULL,
             `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
         try {
             $pdo->exec("ALTER TABLE `storage_requests` ADD COLUMN `status` VARCHAR(20) NOT NULL DEFAULT 'Pending' AFTER `notes`");
+        } catch (PDOException $e) {
+            // Ignore if the column already exists.
+        }
+
+        try {
+            $pdo->exec("ALTER TABLE `storage_requests` ADD COLUMN `completion_serial_number` VARCHAR(120) DEFAULT NULL AFTER `status`");
+        } catch (PDOException $e) {
+            // Ignore if the column already exists.
+        }
+
+        try {
+            $pdo->exec("ALTER TABLE `storage_requests` ADD COLUMN `completion_brand` VARCHAR(120) DEFAULT NULL AFTER `completion_serial_number`");
+        } catch (PDOException $e) {
+            // Ignore if the column already exists.
+        }
+
+        try {
+            $pdo->exec("ALTER TABLE `storage_requests` ADD COLUMN `completion_model` VARCHAR(120) DEFAULT NULL AFTER `completion_brand`");
+        } catch (PDOException $e) {
+            // Ignore if the column already exists.
+        }
+
+        try {
+            $pdo->exec("ALTER TABLE `storage_requests` ADD COLUMN `completed_at` DATETIME DEFAULT NULL AFTER `completion_model`");
         } catch (PDOException $e) {
             // Ignore if the column already exists.
         }
