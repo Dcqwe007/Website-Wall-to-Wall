@@ -682,7 +682,11 @@ session_write_close();
           </div>
           <div class="form-group" style="margin-bottom: 0; grid-column: span 2;">
             <label class="form-label">Storage Location</label>
-            <input type="text" class="modal-input-field" id="storage-location" value="Main Storage Room" placeholder="e.g. Cabinet A-1" required>
+            <select class="modal-input-field" id="storage-location" required>
+              <option value="IT STORAGE">IT STORAGE</option>
+              <option value="GF STORAGE 1">GF STORAGE 1</option>
+              <option value="GF STORAGE 2">GF STORAGE 2</option>
+            </select>
           </div>
         </div>
 
@@ -915,26 +919,6 @@ session_write_close();
         </div>
       </div>
 
-      <!-- Fallback Defaults Bar -->
-      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 16px;">
-        <div class="form-group" style="margin-bottom: 0;">
-          <label class="form-label" style="font-size: 11px;">Default Location (if blank)</label>
-          <input type="text" class="modal-input-field" id="bulk-default-location" value="Main Storage Room" style="font-size: 12px;">
-        </div>
-        <div class="form-group" style="margin-bottom: 0;">
-          <label class="form-label" style="font-size: 11px;">Default Status (if blank)</label>
-          <select class="modal-input-field" id="bulk-default-status" style="font-size: 12px;">
-            <option value="In Storage">In Storage</option>
-            <option value="Working">Working</option>
-            <option value="For Repair">For Repair</option>
-            <option value="Disposal">Disposal</option>
-          </select>
-        </div>
-        <div class="form-group" style="margin-bottom: 0;">
-          <label class="form-label" style="font-size: 11px;">Default Operator</label>
-          <input type="text" class="modal-input-field" id="bulk-default-operator" value="<?php echo htmlspecialchars($_SESSION['aether_username'] ?? 'Dominic Carreon'); ?>" style="font-size: 12px;">
-        </div>
-      </div>
 
       <!-- Preview Section -->
       <div id="storage-bulk-preview-container" style="display: none; margin-bottom: 16px;">

@@ -640,7 +640,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const historyTableBody = document.getElementById('history-table-body');
       const emptyMessage = document.getElementById('table-empty-message');
       const emptyMessageText = document.getElementById('empty-message-text');
-      
+
       if (!historyTableBody) return;
       historyTableBody.innerHTML = '';
 
@@ -696,7 +696,7 @@ document.addEventListener('DOMContentLoaded', () => {
             stationLabel = requestMatch ? ('Request ' + requestMatch[1]) : 'Request Process';
           }
           const actionLabel = isRequestProcess ? 'Request Process' : item.action_type;
-          
+
           let badgeClass = 'badge-other';
           if (item.action_type === 'Add') badgeClass = 'badge-deployed';
           else if (item.action_type === 'Edit') badgeClass = 'badge-onsite';
@@ -809,7 +809,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const inventoryTableBody = document.getElementById('inventory-table-body');
       const emptyMessage = document.getElementById('table-empty-message');
       const emptyMessageText = document.getElementById('empty-message-text');
-      
+
       if (!inventoryTableBody) return;
       inventoryTableBody.innerHTML = '';
 
@@ -881,7 +881,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 hour12: true
               });
             }
-          } catch (e) {}
+          } catch (e) { }
 
           let displayAssetType = item.asset_type;
           if (displayAssetType && displayAssetType.startsWith('Monitor')) {
@@ -915,19 +915,19 @@ document.addEventListener('DOMContentLoaded', () => {
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ id: parseInt(id) })
                 })
-                .then(res => res.json())
-                .then(data => {
-                  if (data.success) {
-                    showToast("Asset Scrapped", "Item removed from inventory.", "success");
-                    fetchInventoryFromDatabase();
-                  } else {
-                    showToast("Action Failed", "Could not remove item.", "danger");
-                  }
-                })
-                .catch(err => {
-                  showToast("Server Connection Error", "Check XAMPP connection.", "danger");
-                  console.error(err);
-                });
+                  .then(res => res.json())
+                  .then(data => {
+                    if (data.success) {
+                      showToast("Asset Scrapped", "Item removed from inventory.", "success");
+                      fetchInventoryFromDatabase();
+                    } else {
+                      showToast("Action Failed", "Could not remove item.", "danger");
+                    }
+                  })
+                  .catch(err => {
+                    showToast("Server Connection Error", "Check XAMPP connection.", "danger");
+                    console.error(err);
+                  });
               }
             });
           }
@@ -1059,25 +1059,25 @@ document.addEventListener('DOMContentLoaded', () => {
               completed_at: completedAt
             })
           })
-          .then(response => response.json())
-          .then(result => {
-            if (result.success) {
-              if (result.warning || result.storage_removed === false) {
-                showToast('Request Updated', result.message || 'Request marked done, but no matching serial was found in storage.', 'warning');
+            .then(response => response.json())
+            .then(result => {
+              if (result.success) {
+                if (result.warning || result.storage_removed === false) {
+                  showToast('Request Updated', result.message || 'Request marked done, but no matching serial was found in storage.', 'warning');
+                } else {
+                  showToast('Request Updated', 'The request has been marked as done and removed from storage.', 'success');
+                }
+                formRequestDone.reset();
+                if (requestDoneIdInput) requestDoneIdInput.value = '';
+                closeModal(modalRequestDone);
+                fetchStorageRequests();
               } else {
-                showToast('Request Updated', 'The request has been marked as done and removed from storage.', 'success');
+                showToast('Update Failed', result.message || 'Unable to update request status.', 'danger');
               }
-              formRequestDone.reset();
-              if (requestDoneIdInput) requestDoneIdInput.value = '';
-              closeModal(modalRequestDone);
-              fetchStorageRequests();
-            } else {
-              showToast('Update Failed', result.message || 'Unable to update request status.', 'danger');
-            }
-          })
-          .catch(() => {
-            showToast('Update Failed', 'Unable to update request status.', 'danger');
-          });
+            })
+            .catch(() => {
+              showToast('Update Failed', 'Unable to update request status.', 'danger');
+            });
         });
 
         formRequestDone.dataset.bound = '1';
@@ -1262,15 +1262,15 @@ document.addEventListener('DOMContentLoaded', () => {
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ id: item.id })
                 })
-                .then(res => res.json())
-                .then(res => {
-                  if (res.success) {
-                    showToast("Storage Item Removed", "Item removed from storage inventory.", "success");
-                    fetchStorageFromDatabase();
-                  } else {
-                    showToast("Action Failed", res.message || "Could not remove item.", "danger");
-                  }
-                });
+                  .then(res => res.json())
+                  .then(res => {
+                    if (res.success) {
+                      showToast("Storage Item Removed", "Item removed from storage inventory.", "success");
+                      fetchStorageFromDatabase();
+                    } else {
+                      showToast("Action Failed", res.message || "Could not remove item.", "danger");
+                    }
+                  });
               }
             });
           }
@@ -1341,8 +1341,8 @@ document.addEventListener('DOMContentLoaded', () => {
       let filtered = assetsList.filter(asset => {
         if (selectedAsset === 'CPU') {
           const hasCpu = (asset.CPU_Model && asset.CPU_Model.trim() !== '' && asset.CPU_Model.trim() !== '-') ||
-                         (asset.CPU_Serial && asset.CPU_Serial.trim() !== '' && asset.CPU_Serial.trim() !== '-') ||
-                         (asset.CPU_Brand && asset.CPU_Brand.trim() !== '' && asset.CPU_Brand.trim() !== '-');
+            (asset.CPU_Serial && asset.CPU_Serial.trim() !== '' && asset.CPU_Serial.trim() !== '-') ||
+            (asset.CPU_Brand && asset.CPU_Brand.trim() !== '' && asset.CPU_Brand.trim() !== '-');
           if (!hasCpu) return false;
         } else if (selectedAsset === 'Monitor') {
           const hasMonitor = [
@@ -2094,20 +2094,20 @@ document.addEventListener('DOMContentLoaded', () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
           })
-          .then(res => res.json())
-          .then(res => {
-            if (res.success) {
-              showToast('Request Logged', 'Storage asset request was submitted successfully.', 'success');
-              formRequestStorage.reset();
-              closeModal(modalRequestStorage);
-              fetchStorageRequests();
-            } else {
-              showToast('Request Failed', res.message || 'Unable to submit the storage request.', 'danger');
-            }
-          })
-          .catch(() => {
-            showToast('Request Failed', 'Unable to submit the storage request.', 'danger');
-          });
+            .then(res => res.json())
+            .then(res => {
+              if (res.success) {
+                showToast('Request Logged', 'Storage asset request was submitted successfully.', 'success');
+                formRequestStorage.reset();
+                closeModal(modalRequestStorage);
+                fetchStorageRequests();
+              } else {
+                showToast('Request Failed', res.message || 'Unable to submit the storage request.', 'danger');
+              }
+            })
+            .catch(() => {
+              showToast('Request Failed', 'Unable to submit the storage request.', 'danger');
+            });
         });
       }
     };
@@ -2500,19 +2500,19 @@ document.addEventListener('DOMContentLoaded', () => {
               site: site
             })
           })
-          .then(res => res.json())
-          .then(res => {
-            if (res.success) {
-              const msg = alsoAddAsset ? "New storage item logged & registered as workstation asset!" : "New item logged into storage inventory.";
-              showToast("Storage Item Saved", msg, "success");
-              closeModal(modalAddStorage);
-              formAddStorage.reset();
-              if (storageAssetDetailsPanel) storageAssetDetailsPanel.style.display = 'none';
-              fetchStorageFromDatabase();
-            } else {
-              showToast("Add Failed", res.message || "Failed to log item into storage.", "danger");
-            }
-          });
+            .then(res => res.json())
+            .then(res => {
+              if (res.success) {
+                const msg = alsoAddAsset ? "New storage item logged & registered as workstation asset!" : "New item logged into storage inventory.";
+                showToast("Storage Item Saved", msg, "success");
+                closeModal(modalAddStorage);
+                formAddStorage.reset();
+                if (storageAssetDetailsPanel) storageAssetDetailsPanel.style.display = 'none';
+                fetchStorageFromDatabase();
+              } else {
+                showToast("Add Failed", res.message || "Failed to log item into storage.", "danger");
+              }
+            });
         });
       }
 
@@ -2576,7 +2576,7 @@ document.addEventListener('DOMContentLoaded', () => {
           "Brand": "HP",
           "Model": "ProDisplay P201",
           "Serial Number": "3CQ4210W7V",
-          "Storage Location": "Main Storage Room",
+          "Storage Location": "IT STORAGE",
           "Status": "In Storage",
           "Operator": "Dominic Carreon"
         },
@@ -2585,7 +2585,7 @@ document.addEventListener('DOMContentLoaded', () => {
           "Brand": "Dell",
           "Model": "OptiPlex 7050",
           "Serial Number": "8B9X123",
-          "Storage Location": "Cabinet B-2",
+          "Storage Location": "GF STORAGE 1",
           "Status": "Working",
           "Operator": "Dominic Carreon"
         },
@@ -2594,7 +2594,7 @@ document.addEventListener('DOMContentLoaded', () => {
           "Brand": "Samsung",
           "Model": "S22E390H",
           "Serial Number": "0LU4HTKQ100216B",
-          "Storage Location": "Main Storage Room",
+          "Storage Location": "GF STORAGE 2",
           "Status": "In Storage",
           "Operator": "Dominic Carreon"
         }
@@ -2894,30 +2894,30 @@ document.addEventListener('DOMContentLoaded', () => {
               default_operator: defaultOperator
             })
           })
-          .then(res => res.json())
-          .then(res => {
-            if (res.success) {
-              showToast("Bulk Import Completed", res.message || `Successfully imported ${res.count || storageBulkParsedData.length} items.`, "success");
-              closeModal(modalBulkStorage);
-              resetBulkStorageModal();
-              fetchStorageFromDatabase();
-            } else {
-              showToast("Import Failed", res.message || "Failed to import items into storage.", "danger");
+            .then(res => res.json())
+            .then(res => {
+              if (res.success) {
+                showToast("Bulk Import Completed", res.message || `Successfully imported ${res.count || storageBulkParsedData.length} items.`, "success");
+                closeModal(modalBulkStorage);
+                resetBulkStorageModal();
+                fetchStorageFromDatabase();
+              } else {
+                showToast("Import Failed", res.message || "Failed to import items into storage.", "danger");
+                btnConfirmBulkImport.disabled = false;
+                btnConfirmBulkImport.style.opacity = '1';
+                if (btnConfirmBulkText) {
+                  btnConfirmBulkText.textContent = `Import ${storageBulkParsedData.length} Items`;
+                }
+              }
+            })
+            .catch(err => {
+              showToast("Network Error", "Could not complete bulk import request: " + err.message, "danger");
               btnConfirmBulkImport.disabled = false;
               btnConfirmBulkImport.style.opacity = '1';
               if (btnConfirmBulkText) {
                 btnConfirmBulkText.textContent = `Import ${storageBulkParsedData.length} Items`;
               }
-            }
-          })
-          .catch(err => {
-            showToast("Network Error", "Could not complete bulk import request: " + err.message, "danger");
-            btnConfirmBulkImport.disabled = false;
-            btnConfirmBulkImport.style.opacity = '1';
-            if (btnConfirmBulkText) {
-              btnConfirmBulkText.textContent = `Import ${storageBulkParsedData.length} Items`;
-            }
-          });
+            });
         });
       }
 
