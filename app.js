@@ -795,7 +795,7 @@ document.addEventListener('DOMContentLoaded', () => {
             inventoryList = res.data || [];
             renderInventoryTable();
           } else {
-            showToast("Fetch Error", res.message || "Failed to fetch hardware inventory.", "danger");
+            showToast("Fetch Error", res.message || "Failed to fetch pulled assets.", "danger");
           }
         })
         .catch(err => {
@@ -982,14 +982,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.setAttribute("href", url);
-      link.setAttribute("download", "it_wall_to_wall_inventory_export.csv");
+      link.setAttribute("download", "it_wall_to_wall_pulled_assets_export.csv");
       document.body.appendChild(link);
 
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      showToast("CSV Compiled", "Download for 'it_wall_to_wall_inventory_export.csv' has started.", "success");
+      showToast("CSV Compiled", "Download for 'it_wall_to_wall_pulled_assets_export.csv' has started.", "success");
     }
 
     // Load storage items from database API
@@ -2286,7 +2286,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (assetFiltersPanel) assetFiltersPanel.style.display = 'none';
       if (inventoryFiltersPanel) inventoryFiltersPanel.style.display = 'flex';
-      if (toolbarPageTitle) toolbarPageTitle.textContent = "Replaced Components Inventory";
+      if (toolbarPageTitle) toolbarPageTitle.textContent = "Pulled Assets Records";
 
       // Hide filters drawer
       const filterDrawer = document.getElementById('filter-drawer');

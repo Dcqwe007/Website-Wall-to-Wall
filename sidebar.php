@@ -28,7 +28,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     </a>
     <a href="dashboard.php?view=inventory" class="nav-item <?php echo ($currentPage == 'dashboard.php' && isset($_GET['view']) && $_GET['view'] == 'inventory') ? 'active' : ''; ?>" id="nav-inventory">
       <i data-lucide="archive" style="width: 16px; height: 16px;"></i>
-      <span>Inventory</span>
+      <span>Pulled Assets</span>
     </a>
     <a href="dashboard.php?view=storage" class="nav-item <?php echo ($currentPage == 'dashboard.php' && isset($_GET['view']) && $_GET['view'] == 'storage') ? 'active' : ''; ?>" id="nav-storage">
       <i data-lucide="box" style="width: 16px; height: 16px;"></i>
