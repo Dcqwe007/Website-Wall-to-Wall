@@ -100,3 +100,24 @@ CREATE TABLE IF NOT EXISTS `storage` (
   `added_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `status` VARCHAR(50) DEFAULT 'In Storage'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- 6. Create the Storage Requests Table
+CREATE TABLE IF NOT EXISTS `storage_requests` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `it_rep` VARCHAR(100) NOT NULL,
+  `asset_type` VARCHAR(20) NOT NULL,
+  `purpose` VARCHAR(30) NOT NULL,
+  `requested_at` DATETIME NOT NULL,
+  `notes` TEXT DEFAULT NULL,
+  `status` VARCHAR(20) NOT NULL DEFAULT 'Pending',
+  `completion_serial_number` VARCHAR(120) DEFAULT NULL,
+  `completion_brand` VARCHAR(120) DEFAULT NULL,
+  `completion_model` VARCHAR(120) DEFAULT NULL,
+  `completed_at` DATETIME DEFAULT NULL,
+  `operator` VARCHAR(100) DEFAULT NULL,
+  `defective_serial_number` VARCHAR(120) DEFAULT NULL,
+  `defective_brand` VARCHAR(120) DEFAULT NULL,
+  `defective_model` VARCHAR(120) DEFAULT NULL,
+  `defective_location` VARCHAR(120) DEFAULT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

@@ -855,6 +855,17 @@ try {
             $brand = trim((string) ($inputData['brand'] ?? ''));
             $model = trim((string) ($inputData['model'] ?? ''));
             $completedAtInput = trim((string) ($inputData['completed_at'] ?? ''));
+            $operator = trim((string) ($inputData['operator'] ?? ($_SESSION['aether_username'] ?? 'Dominic Carreon')));
+            if ($operator === '') {
+                $operator = $_SESSION['aether_username'] ?? 'Dominic Carreon';
+            }
+            $defectiveSerial = trim((string) ($inputData['defective_serial_number'] ?? ''));
+            $defectiveBrand = trim((string) ($inputData['defective_brand'] ?? ''));
+            $defectiveModel = trim((string) ($inputData['defective_model'] ?? ''));
+            $defectiveLocation = trim((string) ($inputData['defective_location'] ?? 'IT STORAGE'));
+            if ($defectiveLocation === '') {
+                $defectiveLocation = 'IT STORAGE';
+            }
 
             if ($id <= 0 || !in_array($status, ['Pending', 'Done'], true)) {
                 echo json_encode(['success' => false, 'message' => 'Invalid request status update.']);
@@ -863,60 +874,118 @@ try {
 
             if ($status === 'Done') {
                 if ($serialNumber === '' || $brand === '' || $model === '' || $completedAtInput === '') {
-                    echo json_encode(['success' => false, 'message' => 'Serial number, brand, model, and date/time are required to complete the request.']);
+                    echo json_encode(['success' => false, 'message' => 'Replacement serial number, brand, model, and date/time are required to complete the request.']);
+                    exit;
+                }
+
+                if ($defectiveSerial === '' || $defectiveBrand === '' || $defectiveModel === '') {
+                    echo json_encode(['success' => false, 'message' => 'Defective asset serial number, brand, and model are required to complete the request.']);
                     exit;
                 }
 
                 $completedAt = date('Y-m-d H:i:s', strtotime($completedAtInput));
 
+                // Fetch original request to get asset type
+                $reqStmt = $db->prepare("SELECT * FROM storage_requests WHERE id = :id LIMIT 1");
+                $reqStmt->execute(['id' => $id]);
+                $storageRequest = $reqStmt->fetch();
+                $assetType = ($storageRequest && !empty($storageRequest['asset_type'])) ? $storageRequest['asset_type'] : 'Asset';
+
                 $db->beginTransaction();
 
-                $stmt = $db->prepare("UPDATE storage_requests SET status = :status, completion_serial_number = :serial_number, completion_brand = :brand, completion_model = :model, completed_at = :completed_at WHERE id = :id");
+                $stmt = $db->prepare("UPDATE storage_requests SET 
+                    status = :status, 
+                    completion_serial_number = :serial_number, 
+                    completion_brand = :brand, 
+                    completion_model = :model, 
+                    completed_at = :completed_at,
+                    operator = :operator,
+                    defective_serial_number = :defective_serial,
+                    defective_brand = :defective_brand,
+                    defective_model = :defective_model,
+                    defective_location = :defective_location
+                    WHERE id = :id");
                 $stmt->execute([
-                    'status' => $status,
-                    'serial_number' => $serialNumber,
-                    'brand' => $brand,
-                    'model' => $model,
-                    'completed_at' => $completedAt,
-                    'id' => $id
+                    'status'           => $status,
+                    'serial_number'    => $serialNumber,
+                    'brand'            => $brand,
+                    'model'            => $model,
+                    'completed_at'     => $completedAt,
+                    'operator'         => $operator,
+                    'defective_serial' => $defectiveSerial,
+                    'defective_brand'  => $defectiveBrand,
+                    'defective_model'  => $defectiveModel,
+                    'defective_location' => $defectiveLocation,
+                    'id'               => $id
                 ]);
 
-                // Auto-remove matching storage asset once request is completed.
+                // Auto-remove matching issued replacement asset from storage
                 $deleteStorageStmt = $db->prepare("DELETE FROM storage WHERE TRIM(serial_number) = TRIM(:serial_number) LIMIT 1");
                 $deleteStorageStmt->execute(['serial_number' => $serialNumber]);
                 $removedFromStorage = $deleteStorageStmt->rowCount() > 0;
 
-                $historyUsername = $_SESSION['aether_username'] ?? 'System';
+                // Add or update the old / defective asset in storage as 'Defective'
+                $checkDefectiveStmt = $db->prepare("SELECT id FROM storage WHERE TRIM(serial_number) = TRIM(:serial) LIMIT 1");
+                $checkDefectiveStmt->execute(['serial' => $defectiveSerial]);
+                $existingDefective = $checkDefectiveStmt->fetch();
+
+                if ($existingDefective) {
+                    $updateDefectiveStmt = $db->prepare("UPDATE storage SET 
+                        asset_type = :type,
+                        model = :model,
+                        brand = :brand,
+                        location = :location,
+                        status = 'Defective',
+                        username = :user,
+                        added_at = :added_at
+                        WHERE id = :id");
+                    $updateDefectiveStmt->execute([
+                        'type'     => $assetType,
+                        'model'    => $defectiveModel,
+                        'brand'    => $defectiveBrand,
+                        'location' => $defectiveLocation,
+                        'user'     => $operator,
+                        'added_at' => $completedAt,
+                        'id'       => $existingDefective['id']
+                    ]);
+                } else {
+                    $insertDefectiveStmt = $db->prepare("INSERT INTO storage (
+                        asset_type, model, serial_number, brand, location, quantity, username, added_at, status
+                    ) VALUES (
+                        :type, :model, :serial, :brand, :location, 1, :user, :added_at, 'Defective'
+                    )");
+                    $insertDefectiveStmt->execute([
+                        'type'     => $assetType,
+                        'model'    => $defectiveModel,
+                        'serial'   => $defectiveSerial,
+                        'brand'    => $defectiveBrand,
+                        'location' => $defectiveLocation,
+                        'user'     => $operator,
+                        'added_at' => $completedAt
+                    ]);
+                }
+
+                $historyUsername = $operator;
                 $historyDetails = 'Request ID ' . $id
-                    . ' marked Done | Serial: ' . $serialNumber
-                    . ' | Brand: ' . $brand
-                    . ' | Model: ' . $model
-                    . ' | Completed At: ' . $completedAt
-                    . ' | Storage Match: ' . ($removedFromStorage ? 'Removed' : 'Not Found');
+                    . ' accepted & marked Done by ' . $operator
+                    . ' | Replacement Issued: ' . $serialNumber . ' (' . $brand . ' ' . $model . ')'
+                    . ' | Defective Asset Stored: ' . $defectiveSerial . ' (' . $defectiveBrand . ' ' . $defectiveModel . ') @ ' . $defectiveLocation
+                    . ' | Completed At: ' . $completedAt;
                 $historyStmt = $db->prepare("INSERT INTO edit_history (station_number, action_type, username, details, changed_at) VALUES (:station_number, :action_type, :username, :details, NOW())");
                 $historyStmt->execute([
                     'station_number' => 0,
-                    'action_type' => 'Request Process',
-                    'username' => $historyUsername,
-                    'details' => $historyDetails
+                    'action_type'    => 'Request Process',
+                    'username'       => $historyUsername,
+                    'details'        => $historyDetails
                 ]);
 
                 $db->commit();
 
-                if ($removedFromStorage) {
-                    echo json_encode([
-                        'success' => true,
-                        'message' => 'Request status updated successfully.',
-                        'storage_removed' => true
-                    ]);
-                } else {
-                    echo json_encode([
-                        'success' => true,
-                        'message' => 'Request marked done, but no storage item matched that serial number.',
-                        'storage_removed' => false,
-                        'warning' => true
-                    ]);
-                }
+                echo json_encode([
+                    'success'         => true,
+                    'message'         => 'Request completed! Issued asset deducted and defective asset stored in ' . $defectiveLocation . '.',
+                    'storage_removed' => $removedFromStorage
+                ]);
                 break;
             } else {
                 $stmt = $db->prepare("UPDATE storage_requests SET status = :status WHERE id = :id");

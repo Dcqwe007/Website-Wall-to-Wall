@@ -1041,9 +1041,19 @@ document.addEventListener('DOMContentLoaded', () => {
           const brand = document.getElementById('request-done-brand').value.trim();
           const model = document.getElementById('request-done-model').value.trim();
           const completedAt = document.getElementById('request-done-datetime').value;
+          const operator = (document.getElementById('request-done-operator')?.value || '').trim();
+          const defectiveSerial = (document.getElementById('request-done-defective-serial')?.value || '').trim();
+          const defectiveBrand = (document.getElementById('request-done-defective-brand')?.value || '').trim();
+          const defectiveModel = (document.getElementById('request-done-defective-model')?.value || '').trim();
+          const defectiveLocation = (document.getElementById('request-done-defective-location')?.value || 'IT STORAGE').trim();
 
           if (!requestId || !serialNumber || !brand || !model || !completedAt) {
-            showToast('Required Fields', 'Please fill Serial Number, Brand, Model, and Date & Time.', 'danger');
+            showToast('Required Fields', 'Please fill Serial Number, Brand, Model, and Date & Time for replacement asset.', 'danger');
+            return;
+          }
+
+          if (!defectiveSerial || !defectiveBrand || !defectiveModel) {
+            showToast('Required Fields', 'Please fill Defective Asset Serial Number, Brand, and Model.', 'danger');
             return;
           }
 
@@ -1056,21 +1066,23 @@ document.addEventListener('DOMContentLoaded', () => {
               serial_number: serialNumber,
               brand: brand,
               model: model,
-              completed_at: completedAt
+              completed_at: completedAt,
+              operator: operator,
+              defective_serial_number: defectiveSerial,
+              defective_brand: defectiveBrand,
+              defective_model: defectiveModel,
+              defective_location: defectiveLocation
             })
           })
             .then(response => response.json())
             .then(result => {
               if (result.success) {
-                if (result.warning || result.storage_removed === false) {
-                  showToast('Request Updated', result.message || 'Request marked done, but no matching serial was found in storage.', 'warning');
-                } else {
-                  showToast('Request Updated', 'The request has been marked as done and removed from storage.', 'success');
-                }
+                showToast('Request Completed', result.message || 'The request has been marked as done and defective asset placed in storage.', 'success');
                 formRequestDone.reset();
                 if (requestDoneIdInput) requestDoneIdInput.value = '';
                 closeModal(modalRequestDone);
                 fetchStorageRequests();
+                fetchStorageFromDatabase();
               } else {
                 showToast('Update Failed', result.message || 'Unable to update request status.', 'danger');
               }
@@ -1088,14 +1100,14 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(res => {
           if (!res.success || !Array.isArray(res.data)) {
             requestList.innerHTML = '<div style="color: #B91C1C; font-size: 13px;">Unable to load storage requests.</div>';
-            if (tableBody) tableBody.innerHTML = '<tr><td colspan="7" style="padding: 12px; color: #B91C1C;">Unable to load requests.</td></tr>';
+            if (tableBody) tableBody.innerHTML = '<tr><td colspan="8" style="padding: 12px; color: #B91C1C;">Unable to load requests.</td></tr>';
             return;
           }
 
           const requests = res.data;
           if (!requests.length) {
             requestList.innerHTML = '<div style="color: #4B5563; font-size: 13px;">No storage asset requests yet.</div>';
-            if (tableBody) tableBody.innerHTML = '<tr><td colspan="7" style="padding: 12px; color: #4B5563;">No asset requests found.</td></tr>';
+            if (tableBody) tableBody.innerHTML = '<tr><td colspan="8" style="padding: 12px; color: #4B5563;">No asset requests found.</td></tr>';
             return;
           }
 
@@ -1127,7 +1139,7 @@ document.addEventListener('DOMContentLoaded', () => {
               const isDone = status.toLowerCase() === 'done' || status.toLowerCase() === 'completed';
               const actionCell = isDone
                 ? '<span style="color: #0f5132; font-weight: 700;">Completed</span>'
-                : '<button type="button" class="btn-mark-request-done" data-request-id="' + item.id + '" style="background: #003D5B; color: white; border: none; border-radius: 4px; padding: 6px 10px; font-size: 11px; font-weight: 700; cursor: pointer;">Done</button>';
+                : '<button type="button" class="btn-mark-request-done" data-request-id="' + item.id + '" data-asset-type="' + htmlspecialchars(item.asset_type || 'Asset') + '" style="background: #003D5B; color: white; border: none; border-radius: 4px; padding: 6px 10px; font-size: 11px; font-weight: 700; cursor: pointer;">Done</button>';
 
               return `
                 <tr style="border-top: 1px solid #D9EAE7;">
@@ -1136,6 +1148,7 @@ document.addEventListener('DOMContentLoaded', () => {
                   <td style="padding: 10px 12px; color: #1F2937;">${htmlspecialchars(item.purpose || 'Replacement')}</td>
                   <td style="padding: 10px 12px; color: #1F2937;">${htmlspecialchars(requestedAt)}</td>
                   <td style="padding: 10px 12px; color: #1F2937;">${notes}</td>
+                  <td style="padding: 10px 12px; color: #003D5B; font-weight: 600;">${htmlspecialchars(item.operator || '—')}</td>
                   <td style="padding: 10px 12px;">
                     <span style="display: inline-block; padding: 4px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; ${isDone ? 'background: rgba(40, 167, 69, 0.14); color: #0f5132;' : 'background: rgba(255, 193, 7, 0.18); color: #7a5300;'}">
                       ${htmlspecialchars(status || 'Pending')}
@@ -1150,7 +1163,10 @@ document.addEventListener('DOMContentLoaded', () => {
             doneButtons.forEach(button => {
               button.addEventListener('click', () => {
                 const requestId = button.getAttribute('data-request-id');
+                const assetType = button.getAttribute('data-asset-type') || 'Asset';
                 if (requestDoneIdInput) requestDoneIdInput.value = requestId || '';
+                const requestDoneAssetTypeInput = document.getElementById('request-done-asset-type');
+                if (requestDoneAssetTypeInput) requestDoneAssetTypeInput.value = assetType;
 
                 if (requestDoneDatetimeInput && !requestDoneDatetimeInput.value) {
                   const now = new Date();
@@ -1159,6 +1175,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (modalRequestDone) {
                   openModal(modalRequestDone);
+                  if (window.lucide) { lucide.createIcons(); }
                 }
               });
             });
@@ -1234,6 +1251,8 @@ document.addEventListener('DOMContentLoaded', () => {
             statusStyle = 'background: rgba(239, 68, 68, 0.15); color: #DC2626; border: 1px solid rgba(239, 68, 68, 0.3);';
           } else if (st === 'for repair') {
             statusStyle = 'background: rgba(245, 158, 11, 0.15); color: #D97706; border: 1px solid rgba(245, 158, 11, 0.3);';
+          } else if (st === 'defective') {
+            statusStyle = 'background: rgba(239, 68, 68, 0.18); color: #991B1B; border: 1px solid rgba(239, 68, 68, 0.4); font-weight: 700;';
           }
 
           tr.innerHTML = `

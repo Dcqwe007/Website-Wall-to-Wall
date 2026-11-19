@@ -43,7 +43,104 @@ session_write_close();
       <!-- Scrollable Analytics Canvas Workspace -->
       <main class="table-workspace" style="padding: 24px; background-color: #F4F6F9; display: flex; flex-direction: column; gap: 24px; overflow-y: auto;">
         
-        <!-- Section: Charts Grid Layout -->
+        <!-- Section: Hardware Availability KPI Summary Cards (Storage Only) -->
+        <div class="kpi-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+          <div class="kpi-card-tile">
+            <div class="kpi-tile-icon" style="background-color: rgba(16, 185, 129, 0.12); color: #10B981;">
+              <i data-lucide="cpu"></i>
+            </div>
+            <div class="kpi-tile-data">
+              <span class="kpi-tile-label">Available CPUs (Storage)</span>
+              <strong class="kpi-tile-value" id="kpi-available-cpu" style="color: #059669;">0</strong>
+            </div>
+          </div>
+
+          <div class="kpi-card-tile">
+            <div class="kpi-tile-icon" style="background-color: rgba(37, 226, 204, 0.18); color: #008779;">
+              <i data-lucide="monitor"></i>
+            </div>
+            <div class="kpi-tile-data">
+              <span class="kpi-tile-label">Available Monitors (Storage)</span>
+              <strong class="kpi-tile-value" id="kpi-available-monitor" style="color: #008779;">0</strong>
+            </div>
+          </div>
+
+          <div class="kpi-card-tile">
+            <div class="kpi-tile-icon" style="background-color: rgba(0, 61, 91, 0.1); color: #003D5B;">
+              <i data-lucide="archive"></i>
+            </div>
+            <div class="kpi-tile-data">
+              <span class="kpi-tile-label">Total Storage Inventory</span>
+              <strong class="kpi-tile-value" id="kpi-total-storage" style="color: #003D5B;">0</strong>
+            </div>
+          </div>
+
+          <div class="kpi-card-tile">
+            <div class="kpi-tile-icon" style="background-color: rgba(239, 68, 68, 0.12); color: #DC2626;">
+              <i data-lucide="alert-triangle"></i>
+            </div>
+            <div class="kpi-tile-data">
+              <span class="kpi-tile-label">Defective / Repair in Storage</span>
+              <strong class="kpi-tile-value" id="kpi-defective-assets" style="color: #DC2626;">0</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Storage Availability (CPUs vs Monitors) Charts Grid -->
+        <div class="analytics-charts-grid" style="display: grid; grid-template-columns: 1.35fr 1fr; gap: 24px; min-height: 420px;">
+          
+          <!-- Card A: Grouped Bar Chart (Storage Availability: CPUs vs Monitors) -->
+          <div class="home-column-card" style="margin: 0; padding: 24px; display: flex; flex-direction: column;">
+            <h3 class="card-section-title" style="margin-bottom: 4px;">
+              <i data-lucide="layers" style="color: var(--bg-header-footer); width: 18px; height: 18px;"></i>
+              Storage Room Availability: CPUs vs Monitors
+            </h3>
+            <p class="card-section-desc" style="margin-bottom: 20px;">Inventory counts in storage rooms only: ready for deployment vs defective / in repair.</p>
+            <div style="position: relative; flex: 1; min-height: 300px; display: flex; align-items: center; justify-content: center;">
+              <canvas id="analytics-availability-chart"></canvas>
+            </div>
+          </div>
+
+          <!-- Card B: Doughnut Chart (Available Storage Stock Distribution) -->
+          <div class="home-column-card" style="margin: 0; padding: 24px; display: flex; flex-direction: column;">
+            <h3 class="card-section-title" style="margin-bottom: 4px;">
+              <i data-lucide="archive" style="color: var(--bg-header-footer); width: 18px; height: 18px;"></i>
+              Available Storage Stock Distribution
+            </h3>
+            <p class="card-section-desc" style="margin-bottom: 20px;">Proportion of available, ready-to-deploy spare inventory currently in storage rooms.</p>
+            <div style="position: relative; flex: 1; min-height: 300px; display: flex; align-items: center; justify-content: center;">
+              <canvas id="analytics-available-share-chart"></canvas>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Section: Storage Room Stock Matrix Table -->
+        <div class="home-column-card" style="padding: 24px;">
+          <h3 class="card-section-title" style="margin-bottom: 4px;">
+            <i data-lucide="boxes" style="color: var(--bg-header-footer); width: 18px; height: 18px;"></i>
+            Storage Inventory & Availability Matrix
+          </h3>
+          <p class="card-section-desc" style="margin-bottom: 20px;">Detailed inventory counts of CPUs, monitors, and components stored in storage rooms.</p>
+          <div style="overflow-x: auto;">
+            <table class="table-custom" style="width: 100%; border: 1px solid var(--border-color);">
+              <thead>
+                <tr style="background-color: var(--bg-th); color: #FFFFFF;">
+                  <th style="padding: 10px 14px;">Hardware Type</th>
+                  <th style="padding: 10px 14px;">Available (Ready to Deploy)</th>
+                  <th style="padding: 10px 14px;">Defective / Under Repair</th>
+                  <th style="padding: 10px 14px;">Total in Storage</th>
+                  <th style="padding: 10px 14px;">Availability Rate</th>
+                </tr>
+              </thead>
+              <tbody id="analytics-availability-table-body" style="background-color: #FFFFFF;">
+                <tr><td colspan="5" style="text-align: center; padding: 20px; color: var(--color-text-muted);">Calculating storage availability...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Section: Charts Grid Layout (Program & Status) -->
         <div class="analytics-charts-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; min-height: 420px;">
           
           <!-- Card 1: Doughnut Chart (Program Share) -->

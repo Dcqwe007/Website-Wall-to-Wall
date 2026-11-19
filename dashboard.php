@@ -207,12 +207,13 @@ session_write_close();
               <th style="padding: 10px 12px; text-align: left;">Purpose</th>
               <th style="padding: 10px 12px; text-align: left;">Date & Time</th>
               <th style="padding: 10px 12px; text-align: left;">Notes</th>
+              <th style="padding: 10px 12px; text-align: left;">Operator</th>
               <th style="padding: 10px 12px; text-align: left;">Status</th>
               <th style="padding: 10px 12px; text-align: left;">Action</th>
             </tr>
           </thead>
           <tbody id="storage-request-table-body">
-            <tr><td colspan="7" style="padding: 12px; color: #4B5563;">No requests found.</td></tr>
+            <tr><td colspan="8" style="padding: 12px; color: #4B5563;">No requests found.</td></tr>
           </tbody>
         </table>
       </div>
@@ -671,6 +672,7 @@ session_write_close();
             <label class="form-label">Status (Condition)</label>
             <select class="modal-input-field" id="storage-status" required>
               <option value="Working">Working</option>
+              <option value="Defective">Defective</option>
               <option value="Disposal">Disposal</option>
               <option value="In Storage">In Storage</option>
               <option value="For Repair">For Repair</option>
@@ -780,8 +782,8 @@ session_write_close();
 
   <!-- Modal 6B: Complete Requested Asset -->
   <div class="modal-overlay" id="modal-request-done">
-    <div class="glass-panel modal-card" style="max-width: 560px; padding: 24px;">
-      <div class="modal-header" style="margin-bottom: 18px;">
+    <div class="glass-panel modal-card" style="max-width: 580px; width: 95%; max-height: 90vh; overflow-y: auto; padding: 24px;">
+      <div class="modal-header" style="margin-bottom: 16px;">
         <h2 class="modal-title" style="font-size: 17px; display: flex; align-items: center; gap: 8px;">
           <i data-lucide="check-circle-2" style="color: var(--bg-header-footer); width: 18px; height: 18px;"></i>
           Complete Request
@@ -793,7 +795,14 @@ session_write_close();
 
       <form id="form-request-done">
         <input type="hidden" id="request-done-id">
-        <div class="modal-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <input type="hidden" id="request-done-asset-type">
+
+        <!-- Section 1: Replacement Asset Issued -->
+        <div style="font-size: 12px; font-weight: 700; color: #003D5B; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 6px;">
+          <i data-lucide="package-check" style="width: 15px; height: 15px; color: #25E2CC;"></i>
+          Replacement Asset Issued (From Storage)
+        </div>
+        <div class="modal-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
           <div class="form-group" style="margin-bottom: 0; grid-column: span 2;">
             <label class="form-label">Serial Number</label>
             <input type="text" class="modal-input-field" id="request-done-serial" placeholder="e.g. CN-0F19K-9901" required>
@@ -806,7 +815,47 @@ session_write_close();
             <label class="form-label">Model</label>
             <input type="text" class="modal-input-field" id="request-done-model" placeholder="e.g. OptiPlex 7090" required>
           </div>
+        </div>
+
+        <!-- Section 2: Old / Defective Asset Returned -->
+        <div style="font-size: 12px; font-weight: 700; color: #B91C1C; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 6px; padding-top: 12px; border-top: 1px dashed #D2D6DE;">
+          <i data-lucide="alert-triangle" style="width: 15px; height: 15px; color: #DC2626;"></i>
+          Old / Defective Asset (Stored as Defective)
+        </div>
+        <div class="modal-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
           <div class="form-group" style="margin-bottom: 0; grid-column: span 2;">
+            <label class="form-label">Defective Serial Number</label>
+            <input type="text" class="modal-input-field" id="request-done-defective-serial" placeholder="e.g. DEF-00129 / CN-OLD-1102" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Defective Brand</label>
+            <input type="text" class="modal-input-field" id="request-done-defective-brand" placeholder="e.g. HP" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Defective Model</label>
+            <input type="text" class="modal-input-field" id="request-done-defective-model" placeholder="e.g. ProDesk 600 G3" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0; grid-column: span 2;">
+            <label class="form-label">Storage Location (For Defective Asset)</label>
+            <select class="modal-input-field" id="request-done-defective-location" required>
+              <option value="IT STORAGE">IT STORAGE</option>
+              <option value="GF STORAGE 1">GF STORAGE 1</option>
+              <option value="GF STORAGE 2">GF STORAGE 2</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Section 3: Fulfillment & Acceptance -->
+        <div style="font-size: 12px; font-weight: 700; color: #003D5B; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 6px; padding-top: 12px; border-top: 1px dashed #D2D6DE;">
+          <i data-lucide="user-check" style="width: 15px; height: 15px; color: #25E2CC;"></i>
+          Fulfillment & Acceptance
+        </div>
+        <div class="modal-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Operator (Accepted By)</label>
+            <input type="text" class="modal-input-field" id="request-done-operator" value="<?php echo htmlspecialchars($_SESSION['aether_username'] ?? 'Dominic Carreon'); ?>" placeholder="e.g. Dominic Carreon" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label">Date & Time</label>
             <input type="datetime-local" class="modal-input-field" id="request-done-datetime" required>
           </div>

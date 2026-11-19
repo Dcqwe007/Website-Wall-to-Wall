@@ -76,6 +76,11 @@ function getDBConnection() {
             `completion_brand` VARCHAR(120) DEFAULT NULL,
             `completion_model` VARCHAR(120) DEFAULT NULL,
             `completed_at` DATETIME DEFAULT NULL,
+            `operator` VARCHAR(100) DEFAULT NULL,
+            `defective_serial_number` VARCHAR(120) DEFAULT NULL,
+            `defective_brand` VARCHAR(120) DEFAULT NULL,
+            `defective_model` VARCHAR(120) DEFAULT NULL,
+            `defective_location` VARCHAR(120) DEFAULT NULL,
             `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
@@ -105,6 +110,36 @@ function getDBConnection() {
 
         try {
             $pdo->exec("ALTER TABLE `storage_requests` ADD COLUMN `completed_at` DATETIME DEFAULT NULL AFTER `completion_model`");
+        } catch (PDOException $e) {
+            // Ignore if the column already exists.
+        }
+
+        try {
+            $pdo->exec("ALTER TABLE `storage_requests` ADD COLUMN `operator` VARCHAR(100) DEFAULT NULL AFTER `completed_at`");
+        } catch (PDOException $e) {
+            // Ignore if the column already exists.
+        }
+
+        try {
+            $pdo->exec("ALTER TABLE `storage_requests` ADD COLUMN `defective_serial_number` VARCHAR(120) DEFAULT NULL AFTER `operator`");
+        } catch (PDOException $e) {
+            // Ignore if the column already exists.
+        }
+
+        try {
+            $pdo->exec("ALTER TABLE `storage_requests` ADD COLUMN `defective_brand` VARCHAR(120) DEFAULT NULL AFTER `defective_serial_number`");
+        } catch (PDOException $e) {
+            // Ignore if the column already exists.
+        }
+
+        try {
+            $pdo->exec("ALTER TABLE `storage_requests` ADD COLUMN `defective_model` VARCHAR(120) DEFAULT NULL AFTER `defective_brand`");
+        } catch (PDOException $e) {
+            // Ignore if the column already exists.
+        }
+
+        try {
+            $pdo->exec("ALTER TABLE `storage_requests` ADD COLUMN `defective_location` VARCHAR(120) DEFAULT NULL AFTER `defective_model`");
         } catch (PDOException $e) {
             // Ignore if the column already exists.
         }
